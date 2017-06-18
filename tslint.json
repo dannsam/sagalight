@@ -1,0 +1,24 @@
+{
+	"defaultSeverity": "error",
+	"extends": [
+		"tslint:recommended"
+	],
+	"jsRules": {},
+	"rules": {
+		"indent": [
+			true,
+			"tabs"
+		],
+		"quotemark": [
+			true,
+			"single",
+			"jsx-double"
+		],
+		"semicolon": [
+			true,
+			"always"
+		],
+		"triple-equals": true,
+	},
+	"rulesDirectory": []
+}
