@@ -1,13 +1,8 @@
-
-
-export default class PromiseResolver implements IEffect {
-	cancellable = false;
-
-	canResolve<T>(result: IteratorResult<Promise<T>>): boolean {
+export const ResolvePromiseEffect: IEffect<Promise<any>, any> = {
+	canResolveResult(result: IteratorResult<Promise<any>>): result is IteratorResult<Promise<any>> {
 		return result.value instanceof Promise;
-	}
- 
-	resolve<T>(result: IteratorResult<Promise<T>>, cb: IEffectCallback<T>): void {
-		result.value.then((result) => cb(null, result), (error) => cb(error));
+	},
+	run<T>(result: IteratorResult<Promise<T>>, runData: IEffectRunData<T>): void {
+		result.value.then((result) => runData.next(null, result), (error) => runData.next(error));
 	}
 }
