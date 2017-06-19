@@ -18,6 +18,7 @@ declare interface ICancellableEffect<TInput= any, TOutput= any> extends IEffectR
 }
 
 declare interface ICancellableEffectInfo {
+	cancel(): void;
 	cancel(cb: (error: null | Error) => void): void;
 }
 
@@ -28,7 +29,8 @@ declare interface ICallback<T = any> {
 declare interface IEffectRunData<TOutput = any> {
 	next: ICallback<TOutput>;
 	isTaskCancelled: boolean;
-	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask
+	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
+	taskInputStream: IStream | undefined;
 }
 
 declare interface IIteratorFactory<T> {
@@ -37,8 +39,19 @@ declare interface IIteratorFactory<T> {
 
 declare type IEffectCollection = (IEffect | ICancellableEffect)[];
 
+declare type IInputStreamFunction = (input: any) => void;
+declare type IUnsubscribeFunction = () => void;
+declare type ISubscribeFunction = (cb: IInputStreamFunction) => IUnsubscribeFunction;
+
+
+declare interface IStream {
+	subscribe: ISubscribeFunction;
+	put: IInputStreamFunction;
+}
+
 declare interface IRunOptions {
 	effects?: IEffectCollection;
+	input?: IStream;
 }
 
 declare interface ITaskStartInfo<T> {

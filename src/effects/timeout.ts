@@ -5,41 +5,44 @@ export const TimeoutEffectIdentifier = {
 }
 
 export interface ITimeoutEffectDescription<TFunction extends Function = any> {
-    effectIdentifier: typeof TimeoutEffectIdentifier;
+	effectIdentifier: typeof TimeoutEffectIdentifier;
 	delay: number;
-    fn: TFunction;
-    args: any[];
+	fn: TFunction;
+	args: any[];
 }
 
 export function timeout<T extends Function>(delay: number, fn: T, ...args: any[]): ITimeoutEffectDescription<T> {
-    return {
-        effectIdentifier: TimeoutEffectIdentifier,
-        fn,
+	return {
+		effectIdentifier: TimeoutEffectIdentifier,
+		fn,
 		delay,
-        args
-    };
+		args
+	};
 }
 
 export const TimeoutEffect: ICancellableEffect<ITimeoutEffectDescription, void> = {
-    canResolveResult(result: IteratorResult<ITimeoutEffectDescription>): result is IteratorResult<ITimeoutEffectDescription> {
-        return result.value && result.value.effectIdentifier === TimeoutEffectIdentifier;
-    },
-    run<T extends Function>(result: IteratorResult<ITimeoutEffectDescription<T>>, runData: IEffectRunData<void>) {
-        const { delay, fn, args } = result.value;
+	canResolveResult(result: IteratorResult<ITimeoutEffectDescription>): result is IteratorResult<ITimeoutEffectDescription> {
+		return result.value && result.value.effectIdentifier === TimeoutEffectIdentifier;
+	},
+	run<T extends Function>(result: IteratorResult<ITimeoutEffectDescription<T>>, runData: IEffectRunData<void>) {
+		const { delay, fn, args } = result.value;
 
 		const timeout = setTimeout(() => {
+			let result;
 			try {
-				runData.next(null, fn(args));
-			} catch(e) {
+				result = fn(args);
+			} catch (e) {
 				runData.next(e);
+				return;
 			}
+
+			runData.next(null, result);
 		}, delay);
 
 		return {
-			cancel(cb) {
+			cancel() {
 				clearTimeout(timeout);
-				cb(null);
 			}
 		};
-    }
+	}
 }

@@ -3,22 +3,20 @@ import run from '../../src/run';
 let cancelledEffect = false;
 
 const TestCancellableEffect: ICancellableEffect = {
-    canResolveResult(result): result is any  {
+    canResolveResult(result): result is any {
         return true;
     },
     run(result, runData) {
         //ever lasting effect
-
         return {
-            cancel(cb) {
+            cancel() {
                 cancelledEffect = true;
-                cb(null);
             }
         };
     },
 }
 
-const task = run({effects: [TestCancellableEffect]}, function* test () {
+const task = run({ effects: [TestCancellableEffect] }, function* test() {
     //starts ever-lasting effect
     yield null;
 });
@@ -26,3 +24,5 @@ const task = run({effects: [TestCancellableEffect]}, function* test () {
 task.cancel();
 
 console.log(`cancelledEffect ${cancelledEffect} should be true`)
+
+console.log(`task.isComplete ${task.isCompleted} should be true`);

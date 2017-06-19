@@ -3,7 +3,7 @@ import { ForkEffect } from './effects/fork';
 import { ResolvePromiseEffect } from './effects/resolvePromise';
 import { TimeoutEffect } from './effects/timeout';
 import { Task } from './task';
-
+import { TakeEffect } from "./effects/take";
 
 function run<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
 function run<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
@@ -21,7 +21,7 @@ function run<T>(o: IRunOptions | IIteratorFactory<T>, factory: IIteratorFactory<
 	const effects = options.effects || standardEffects();
 
 	const iterator = factory(...args);
-	const task = new Task(factory.name, iterator, effects);
+	const task = new Task(factory.name, iterator, effects, options.input);
 
 	task.start();
 
@@ -35,6 +35,7 @@ function standardEffects(): IEffectCollection {
 		ResolvePromiseEffect,
 		CancelledEffect,
 		ForkEffect,
-		TimeoutEffect
+		TimeoutEffect,
+		TakeEffect
 	];
 }
