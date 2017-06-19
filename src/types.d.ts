@@ -2,10 +2,12 @@ declare interface IEffectResolver<TInput> {
 	canResolveResult(result: IteratorResult<TInput>): result is IteratorResult<TInput>;
 }
 
+declare type TaskState = 'new' | 'running' | 'cancelled' | 'complete' | 'failed' | 'being_cancelled';
+
 declare interface ITask {
 	scheduleChildTask(child: ITaskStartInfo<any>): ITask;
 	next: ICallback;
-	isCancelled: boolean;
+	readonly state: TaskState;
 	cancel(): void;
 }
 
@@ -27,13 +29,14 @@ declare interface ICallback<T = any> {
 
 declare interface IEffectRunData<TOutput = any> {
 	next: ICallback<TOutput>;
-	isTaskCancelled: boolean;
+	taskState: TaskState;
 	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
 	taskInputStream: IStream | undefined;
 }
 
 declare interface IIteratorFactory<T> {
 	(...args: any[]): IterableIterator<T>;
+	name: string;
 }
 
 declare type IEffectCollection = (IEffect | ICancellableEffect)[];
@@ -51,6 +54,13 @@ declare interface IStream {
 declare interface IRunOptions {
 	effects?: IEffectCollection;
 	input?: IStream;
+	callback?: ICallback;
+}
+
+declare interface ITaskOptions {
+	effects: IEffectCollection;
+	input?: IStream;
+	callback: ICallback;
 }
 
 declare interface ITaskStartInfo<T> {

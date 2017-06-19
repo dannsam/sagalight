@@ -6,7 +6,7 @@ export class Stream implements IStream {
 		this.subscriptions.push(cb);
 
 		return () => {
-			const index = this.subscriptions.indexOf(cb);;
+			const index = this.subscriptions.indexOf(cb);
 			if (index !== -1) {
 				this.subscriptions.splice(index, 1);
 			}
@@ -14,7 +14,7 @@ export class Stream implements IStream {
 	}
 
 	put(data: any) {
-		this.subscriptions.forEach(cb => {
+		this.subscriptions.forEach((cb) => {
 			cb(data);
 		});
 	}

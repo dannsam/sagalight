@@ -3,25 +3,40 @@ import { ForkEffect } from './effects/fork';
 import { ResolvePromiseEffect } from './effects/resolvePromise';
 import { DelayEffect } from './effects/delay';
 import { Task } from './task';
-import { TakeEffect } from "./effects/take";
+import { TakeEffect } from './effects/take';
+import { isFunction } from './util';
 
 function run<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
 function run<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
-function run<T>(o: IRunOptions | IIteratorFactory<T>, factory: IIteratorFactory<T> | any, ...args: any[]): Task<T> {
+function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFirstArg: IIteratorFactory<T> | any, ...args: any[]): Task<T> {
 	let options: IRunOptions;
-	if (typeof o === 'function') {
-		//no options passed then options is factory and factory is the first arg 
-		args.unshift(factory);
-		factory = o;
+	let factory: IIteratorFactory<T>;
+
+	if (typeof optionsOrFactory === 'function') {
+		// no options passed then options is factory and factory is the first arg 
+		args.unshift(factoryOrFirstArg);
+		factory = optionsOrFactory;
 		options = {};
 	} else {
-		options = o;
+		options = optionsOrFactory;
+		factory = factoryOrFirstArg;
 	}
 
-	const effects = options.effects || standardEffects();
+	const taskOptions: ITaskOptions = {
+		effects: options.effects instanceof Array ? options.effects : standardEffects(),
+		input: options.input,
+		callback: (error: Error) => {
+			if (error && !isFunction(options.callback)) {
+				// unhandled rejection - throw 
+				throw error;
+			}
+		},
+	};
+
+	options.effects = options.effects instanceof Array ? options.effects : standardEffects();
 
 	const iterator = factory(...args);
-	const task = new Task(factory.name, iterator, effects, options.input);
+	const task = new Task(factory.name, iterator, taskOptions);
 
 	task.start();
 
@@ -36,6 +51,6 @@ function standardEffects(): IEffectCollection {
 		CancelledEffect,
 		ForkEffect,
 		DelayEffect,
-		TakeEffect
+		TakeEffect,
 	];
 }

@@ -1,8 +1,8 @@
 export const DelayEffectIdentifier = {
 	toString(): '@sagalight/effect/delay' {
 		return '@sagalight/effect/delay';
-	}
-}
+	},
+};
 
 export interface IDelayEffectDescription {
 	effectIdentifier: typeof DelayEffectIdentifier;
@@ -11,8 +11,8 @@ export interface IDelayEffectDescription {
 
 export function delay(delay: number): IDelayEffectDescription {
 	return {
+		delay,
 		effectIdentifier: DelayEffectIdentifier,
-		delay
 	};
 }
 
@@ -25,10 +25,10 @@ export const DelayEffect: ICancellableEffect<IDelayEffectDescription, void> = {
 
 		const timeout = setTimeout(() => {
 			runData.next(null, null);
-		}, delay);
+		},                         delay);
 
 		return {
-			cancel: () => clearTimeout(timeout)
+			cancel: () => clearTimeout(timeout),
 		};
-	}
-}
+	},
+};

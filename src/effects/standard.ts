@@ -5,5 +5,5 @@ export const StandardEffect: IEffect = {
 	},
 	run(result, runData) {
 		runData.next(null, result.value);
-	}
+	},
 };

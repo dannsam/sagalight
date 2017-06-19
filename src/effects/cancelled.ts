@@ -1,8 +1,10 @@
+import { STATE_BEING_CANCELLED, STATE_CANCELLED } from '../task';
+
 export const CancelledEffectIdentifier = {
 	toString(): '@sagalight/effect/cancelled' {
 		return '@sagalight/effect/cancelled';
-	}
-}
+	},
+};
 
 export type ICancelledEffectIdentifier = typeof CancelledEffectIdentifier;
 
@@ -15,6 +17,6 @@ export const CancelledEffect: IEffect<ICancelledEffectIdentifier, boolean> = {
 		return result.value === CancelledEffectIdentifier;
 	},
 	run(result, runData: IEffectRunData<boolean>): void {
-		runData.next(null, runData.isTaskCancelled);
-	}
+		runData.next(null, runData.taskState === STATE_BEING_CANCELLED || runData.taskState === STATE_CANCELLED);
+	},
 };

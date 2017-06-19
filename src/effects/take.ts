@@ -1,8 +1,8 @@
 export const TakeEffectIdentifier = {
 	toString(): '@sagalight/effect/take' {
 		return '@sagalight/effect/take';
-	}
-}
+	},
+};
 
 export interface ITakeEffectDescription<T = any> {
 	effectIdentifier: typeof TakeEffectIdentifier;
@@ -12,9 +12,9 @@ export interface ITakeEffectDescription<T = any> {
 
 export function take<T>(condition: (data: T) => boolean, stream?: IStream): ITakeEffectDescription<T> {
 	return {
-		effectIdentifier: TakeEffectIdentifier,
 		condition,
-		stream
+		stream,
+		effectIdentifier: TakeEffectIdentifier,
 	};
 }
 
@@ -48,7 +48,7 @@ export const TakeEffect: ICancellableEffect<ITakeEffectDescription, void> = {
 		});
 
 		return {
-			cancel: unsubscribe
+			cancel: unsubscribe,
 		};
-	}
-}
+	},
+};
