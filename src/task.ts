@@ -44,19 +44,17 @@ export class Task<T = any> implements ITask {
 		this.isCancelled = true;
 		//cancel current effect
 		if (this.currentCancellableEffect) {
+			let success = false;
 			try {
-				if (this.currentCancellableEffect.cancel.length) {
-					//pass cb - async cancel
-					this.currentCancellableEffect.cancel((err) => {
-						this.next(err, null);
-					});
-				} else {
-					//sync cancel - resolve
-					this.currentCancellableEffect.cancel();
-					this.next(null, null);
-				}
+				//sync cancel - resolve
+				this.currentCancellableEffect.cancel();
+				success = true;
 			} catch (error) {
 				this.next(error, null);
+			}
+
+			if (success) {
+				this.next(null, null);
 			}
 
 		}

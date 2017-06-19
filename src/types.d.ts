@@ -19,7 +19,6 @@ declare interface ICancellableEffect<TInput= any, TOutput= any> extends IEffectR
 
 declare interface ICancellableEffectInfo {
 	cancel(): void;
-	cancel(cb: (error: null | Error) => void): void;
 }
 
 declare interface ICallback<T = any> {
