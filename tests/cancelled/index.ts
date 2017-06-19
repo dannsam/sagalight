@@ -1,14 +1,13 @@
 
 import run from '../../src/run';
 import { fork } from '../../src/effects/fork';
-import { timeout } from '../../src/effects/timeout';
+import { delay } from '../../src/effects/delay';
 import { cancelled } from '../../src/effects/cancelled';
 
 function* forkedTask() {
     try {
-        yield timeout(200, ()=> {
-            throw new Error('Timeout is expected to be cancelled along with the forked task');
-        });
+        yield delay(200);
+        throw new Error('Timeout is expected to be cancelled along with the forked task');
     } finally {
         if (yield cancelled()) {
             console.log('cancelled effect works as expected');

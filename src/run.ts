@@ -1,7 +1,7 @@
 import { CancelledEffect } from './effects/cancelled';
 import { ForkEffect } from './effects/fork';
 import { ResolvePromiseEffect } from './effects/resolvePromise';
-import { TimeoutEffect } from './effects/timeout';
+import { DelayEffect } from './effects/delay';
 import { Task } from './task';
 import { TakeEffect } from "./effects/take";
 
@@ -35,7 +35,7 @@ function standardEffects(): IEffectCollection {
 		ResolvePromiseEffect,
 		CancelledEffect,
 		ForkEffect,
-		TimeoutEffect,
+		DelayEffect,
 		TakeEffect
 	];
 }

@@ -2,11 +2,9 @@ import run from '../../src/run';
 import { Stream } from '../../src/stream';
 import { take } from '../../src/effects/take';
 
-const stream = new Stream();
+const input = new Stream();
 
-const task = run({
-    input: stream
-}, function* () {
+const task = run({ input }, function* () {
 
     const value = yield take(data => data === 'expectedValue');
     if (value === 'expectedValue') {
@@ -17,5 +15,5 @@ const task = run({
 
 });
 
-stream.put('unexpectedValue');
-stream.put('expectedValue');
+input.put('unexpectedValue');
+input.put('expectedValue');
