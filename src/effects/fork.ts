@@ -1,39 +1,35 @@
-import { IEffect, IEffectRunData, ITask, IIteratorFactory } from '../core/types';
+import { IEffectRunData, ITask, IIteratorFactory, IEffect } from '../core/types';
+import { createEffect } from '../core/util';
 
-export const ForkEffectIdentifier = {
-	toString(): '@sagalight/effect/fork' {
-		return '@sagalight/effect/fork';
-	},
-};
-
-export interface IForkEffectDescription<T = any> {
-	effectIdentifier: typeof ForkEffectIdentifier;
-	factory: IIteratorFactory<T>;
+export interface IForkEffectData {
+	factory: IIteratorFactory;
 	args: any[];
 }
 
-export function fork<T>(factory: IIteratorFactory<T>, ...args: any[]): IForkEffectDescription {
+export interface IForkEffect extends IEffect<IForkEffectData, ITask> {
+	(factory: IIteratorFactory, ...args: any[]): IForkEffectData;
+}
+
+const isStandardEffect = true;
+
+const dataFn = (factory: IIteratorFactory, ...args: any[]): IForkEffectData => {
 	return {
 		factory,
 		args,
-		effectIdentifier: ForkEffectIdentifier,
 	};
-}
-
-export const ForkEffect: IEffect<IForkEffectDescription, ITask> = {
-	canResolveResult(result: IteratorResult<IForkEffectDescription>) {
-		return result.value && result.value.effectIdentifier === ForkEffectIdentifier;
-	},
-	run<T>(result: IteratorResult<IForkEffectDescription<T>>, runData: IEffectRunData<ITask>) {
-		const factory = result.value.factory;
-
-		const iterator = factory(...result.value.args);
-
-		const childTask = runData.scheduleChildTask({
-			iterator,
-			name: factory.name,
-		});
-
-		runData.next(null, childTask);
-	},
 };
+
+const resolver = (result: IteratorResult<IForkEffectData>, runData: IEffectRunData<ITask>) => {
+	const factory = result.value.factory;
+
+	const iterator = factory(...result.value.args);
+
+	const childTask = runData.scheduleChildTask({
+		iterator,
+		name: factory.name,
+	});
+
+	runData.next(null, childTask);
+};
+
+export const fork: IForkEffect = createEffect('fork', dataFn, resolver, isStandardEffect);

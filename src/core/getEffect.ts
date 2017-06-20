@@ -1,13 +1,20 @@
-import { StandardEffect } from '../effects/standard';
-import { ICancellableEffect, IEffectCollection, IEffect } from './types';
+import { IEffectCollection, IEffect, IEffectRunData } from './types';
+import { createResolver } from './util';
 
-export function getEffect<TInput = any>(result: IteratorResult<TInput>, effects: IEffectCollection): (IEffect | ICancellableEffect) {
+const test = () => true;
+const resolver = <T>(result: IteratorResult<T>, runData: IEffectRunData<T>) => {
+	runData.next(null, result.value);
+};
+
+const standardResolver = createResolver('standardResolver', test, resolver);
+
+export function getEffect<TInput = any>(result: IteratorResult<TInput>, effects: IEffectCollection): IEffect {
 	for (let i = 0; i < effects.length; i++) {
 		const e = effects[i];
-		if (e.canResolveResult(result)) {
+		if (e.canResolve(result)) {
 			return e;
 		}
 	}
 
-	return StandardEffect;
+	return standardResolver;
 }

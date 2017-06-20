@@ -1,6 +1,6 @@
 import { getEffect } from './getEffect';
 import { isFunction } from './util';
-import { ITaskStartInfo, ICancellableEffectInfo, TaskState, ITask, ITaskOptions } from './types';
+import { ITaskStartInfo, TaskState, ITask, ITaskOptions, ICancellableEffectInfo } from './types';
 
 const TASK_CANCEL = {
 	toString() {
@@ -25,7 +25,7 @@ export class Task<T = any> implements ITask {
 	private currentCancellableEffect: ICancellableEffectInfo | null | void = null;
 
 	constructor(
-		private name: string,
+		private name: string | undefined,
 		private iterator: Iterator<T>,
 		private options: ITaskOptions,
 		private parent?: ITask | undefined) {
@@ -79,7 +79,7 @@ export class Task<T = any> implements ITask {
 
 			if (!result.done) {
 				const effect = getEffect(result, this.options.effects);
-				this.currentCancellableEffect = effect.run(result, {
+				this.currentCancellableEffect = effect.resolver(result, {
 					next: this.next,
 					isTaskCancelled: this.state === STATE_BEING_CANCELLED || this.state === STATE_CANCELLED,
 					scheduleChildTask: this.scheduleChildTask,

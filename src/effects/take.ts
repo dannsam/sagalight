@@ -1,56 +1,47 @@
-import { IStream, ICancellableEffect, IEffectRunData } from '../core/types';
+import { IStream, IEffectRunData, IEffect } from '../core/types';
+import { createEffect } from '../core/util';
 
-export const TakeEffectIdentifier = {
-	toString(): '@sagalight/effect/take' {
-		return '@sagalight/effect/take';
-	},
-};
-
-export interface ITakeEffectDescription {
-	effectIdentifier: typeof TakeEffectIdentifier;
+export interface ITakeEffectData {
 	condition: (data: any) => boolean;
 	stream?: IStream;
 }
 
-export function take<T>(condition: (data: T) => boolean, stream?: IStream): ITakeEffectDescription {
-	return {
-		condition,
-		stream,
-		effectIdentifier: TakeEffectIdentifier,
-	};
+export interface ITakeEffect<T = any> extends IEffect<ITakeEffectData, T> {
+	(condition: (data: any) => boolean, stream?: IStream): ITakeEffectData;
 }
 
-export const TakeEffect: ICancellableEffect<ITakeEffectDescription, void> = {
-	canResolveResult(result: IteratorResult<ITakeEffectDescription>) {
-		return result.value && result.value.effectIdentifier === TakeEffectIdentifier;
-	},
-	run<T>(result: IteratorResult<ITakeEffectDescription>, runData: IEffectRunData<T>) {
-		const stream = result.value.stream || runData.taskInputStream;
+const isStandardEffect = true;
 
-		if (!stream) {
-			throw new Error('Please provide input stream via run options or take(..., stream) in order to use TakeEffect');
+const dataFn = (condition: (data: any) => boolean, stream?: IStream) => ({ condition, stream });
+
+const resolver = <T>(result: IteratorResult<ITakeEffectData>, runData: IEffectRunData<T>) => {
+	const stream = result.value.stream || runData.taskInputStream;
+
+	if (!stream) {
+		throw new Error('Please provide input stream via run options or take(..., stream) in order to use TakeEffect');
+	}
+
+	const condition = result.value.condition;
+
+	const unsubscribe = stream.subscribe((data) => {
+		let matches: boolean;
+		try {
+			matches = condition(data);
+		} catch (e) {
+			unsubscribe();
+			runData.next(e);
+			return;
 		}
 
-		const condition = result.value.condition;
+		if (matches) {
+			unsubscribe();
+			runData.next(null, data);
+		}
+	});
 
-		const unsubscribe = stream.subscribe((data) => {
-			let matches: boolean;
-			try {
-				matches = condition(data);
-			} catch (e) {
-				unsubscribe();
-				runData.next(e);
-				return;
-			}
-			
-			if (matches) {
-				unsubscribe();
-				runData.next(null, data);
-			}
-		});
-
-		return {
-			cancel: unsubscribe,
-		};
-	},
+	return {
+		cancel: unsubscribe,
+	};
 };
+
+export const take: ITakeEffect = createEffect('take', dataFn, resolver, isStandardEffect);

@@ -1,11 +1,7 @@
-import { CancelledEffect } from '../effects/cancelled';
-import { ForkEffect } from '../effects/fork';
-import { ResolvePromiseEffect } from '../effects/resolvePromise';
-import { DelayEffect } from '../effects/delay';
-import { TakeEffect } from '../effects/take';
 import { Task } from './task';
 import { isFunction } from './util';
-import { IIteratorFactory, IRunOptions, ITaskOptions, IEffectCollection } from './types';
+import { IIteratorFactory, IRunOptions, ITaskOptions } from './types';
+import { getStandardEffects } from './standardEffects';
 
 function run<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
 function run<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
@@ -24,7 +20,7 @@ function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFi
 	}
 
 	const taskOptions: ITaskOptions = {
-		effects: options.effects instanceof Array ? options.effects : standardEffects(),
+		effects: options.effects instanceof Array ? options.effects : getStandardEffects(),
 		input: options.input,
 		callback: (error: Error) => {
 			if (error && !isFunction(options.callback)) {
@@ -33,8 +29,6 @@ function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFi
 			}
 		},
 	};
-
-	options.effects = options.effects instanceof Array ? options.effects : standardEffects();
 
 	const iterator = factory(...args);
 	const task = new Task(factory.name, iterator, taskOptions);
@@ -45,13 +39,3 @@ function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFi
 }
 
 export { run };
-
-function standardEffects(): IEffectCollection {
-	return [
-		ResolvePromiseEffect,
-		CancelledEffect,
-		ForkEffect,
-		DelayEffect,
-		TakeEffect,
-	];
-}

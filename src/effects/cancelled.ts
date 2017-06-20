@@ -1,22 +1,18 @@
 import { IEffect, IEffectRunData } from '../core/types';
+import { createEffect } from '../core/util';
 
-export const CancelledEffectIdentifier = {
-	toString(): '@sagalight/effect/cancelled' {
-		return '@sagalight/effect/cancelled';
-	},
-};
+export interface ICancelledEffectData { }
 
-export type ICancelledEffectIdentifier = typeof CancelledEffectIdentifier;
-
-export function cancelled() {
-	return CancelledEffectIdentifier;
+export interface ICancelledEffect extends IEffect<ICancelledEffectData, boolean> {
+	(): ICancelledEffectData;
 }
 
-export const CancelledEffect: IEffect<ICancelledEffectIdentifier, boolean> = {
-	canResolveResult(result: IteratorResult<any>) {
-		return result.value === CancelledEffectIdentifier;
-	},
-	run(_, runData: IEffectRunData<boolean>): void {
-		runData.next(null, runData.isTaskCancelled);
-	},
+const isStandardEffect = true;
+
+const dataFn = () => ({});
+
+const resolver = (_: IteratorResult<ICancelledEffectData>, runData: IEffectRunData<boolean>) => {
+	runData.next(null, runData.isTaskCancelled);
 };
+
+export const cancelled: ICancelledEffect = createEffect('cancelled', dataFn, resolver, isStandardEffect);

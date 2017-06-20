@@ -6,16 +6,17 @@ function makeAsync() {
 }
 
 const makeAsyncEffect: IEffect<any, any> = {
-	canResolveResult(result): result is any {
+	effectName: 'makeAsync',
+	canResolve(result): result is any {
 		return result.value === 'makeAsync';
 	},
-	run(_, runData) {
+	resolver(_, runData) {
 		// resolve effect async
 		Promise.resolve().then(() => runData.next(null, null));
 	},
 };
 
-fdescribe('Task -', () => {
+describe('Task -', () => {
 	const oneYieldIterator = function* () { yield 5; };
 	const asyncIterator = function* () { yield makeAsync(); };
 	const expectedError = new Error('oh ah');
@@ -175,8 +176,9 @@ fdescribe('Task -', () => {
 				expect(task.state).toBe('failed');
 				done();
 			}, [{
-				canResolveResult: () => true,
-				run(_, runData) {
+				effectName: 'testEffect',
+				canResolve: () => true,
+				resolver(_, runData) {
 					runData.next(expectedError);
 				},
 			}]);
@@ -195,8 +197,9 @@ fdescribe('Task -', () => {
 				expect(task.state).toBe('complete');
 				done();
 			}, [{
-				canResolveResult: () => true,
-				run(_, runData) {
+				effectName: 'testEffect',
+				canResolve: () => true,
+				resolver(_, runData) {
 					runData.next(expectedError);
 				},
 			}]);
@@ -241,7 +244,7 @@ fdescribe('Task -', () => {
 		task.cancel();
 	});
 
-	it('Cancel task - cancells current cancellable effect', (done) => {
+	it('Cancel task - cancels current cancellable effect', (done) => {
 		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
 			next: { done: false, value: 'cancellable' },
 		});
@@ -249,8 +252,8 @@ fdescribe('Task -', () => {
 		const cancelSpy = jasmine.createSpy('cancelEffect');
 
 		const effectSpy = jasmine.createSpyObj('effectSpy', {
-			canResolveResult: true,
-			run: { cancel: cancelSpy },
+			canResolve: true,
+			resolver: { cancel: cancelSpy },
 		});
 
 		const task = createTask(
@@ -274,8 +277,8 @@ fdescribe('Task -', () => {
 		const cancelSpy = jasmine.createSpy('cancelEffect').and.throwError(expectedError as any);
 
 		const effectSpy = jasmine.createSpyObj('effectSpy', {
-			canResolveResult: true,
-			run: { cancel: cancelSpy },
+			canResolve: true,
+			resolver: { cancel: cancelSpy },
 		});
 
 		const task = createTask(

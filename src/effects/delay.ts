@@ -1,38 +1,30 @@
-import { IEffectRunData, ICancellableEffect } from '../core/types';
+import { IEffectRunData, IEffect } from '../core/types';
+import { createEffect } from '../core/util';
 
-export const DelayEffectIdentifier = {
-	toString(): '@sagalight/effect/delay' {
-		return '@sagalight/effect/delay';
-	},
-};
-
-export interface IDelayEffectDescription {
-	effectIdentifier: typeof DelayEffectIdentifier;
+export interface IDelayEffectData {
 	delay: number;
 }
 
-export function delay(delay: number): IDelayEffectDescription {
-	return {
-		delay,
-		effectIdentifier: DelayEffectIdentifier,
-	};
+export interface IDelayEffect extends IEffect<IDelayEffectData, null> {
+	(delay: number): IDelayEffectData;
 }
 
-export const DelayEffect: ICancellableEffect<IDelayEffectDescription, void> = {
-	canResolveResult(result: IteratorResult<IDelayEffectDescription>) {
-		return result.value && result.value.effectIdentifier === DelayEffectIdentifier;
-	},
-	run(result: IteratorResult<IDelayEffectDescription>, runData: IEffectRunData) {
-		const { delay } = result.value;
+const isStandardEffect = true;
 
-		const timeout = setTimeout(
-			() => {
-				runData.next(null, null);
-			},
-			delay);
+const dataFn = (delay: number) => ({ delay });
 
-		return {
-			cancel: () => clearTimeout(timeout),
-		};
-	},
+const resolver = (result: IteratorResult<IDelayEffectData>, runData: IEffectRunData<null>) => {
+	const { delay } = result.value;
+
+	const timeout = setTimeout(
+		() => {
+			runData.next(null, null);
+		},
+		delay);
+
+	return {
+		cancel: () => clearTimeout(timeout),
+	};
 };
+
+export const delay: IDelayEffect = createEffect('delay', dataFn, resolver, isStandardEffect);

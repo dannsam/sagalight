@@ -8,20 +8,15 @@ export interface ITask {
 	cancel(): void;
 }
 
-export interface IEffectResolver<TInput> {
-	canResolveResult(result: IteratorResult<TInput>): boolean;
-}
-
-export interface IEffect<TInput = any, TOutput= any> extends IEffectResolver<TInput> {
-	run(result: IteratorResult<TInput>, runData: IEffectRunData<TOutput>): void;
-}
-
-export interface ICancellableEffect<TInput= any, TOutput= any> extends IEffectResolver<TInput> {
-	run(result: IteratorResult<TInput>, runData: IEffectRunData<TOutput>): ICancellableEffectInfo;
-}
-
 export interface ICancellableEffectInfo {
+	effectName?: string;
 	cancel(): void;
+}
+
+export interface IEffect<TData = any, TOutput = any> {
+	effectName: string;
+	canResolve: (result: IteratorResult<TData>) => boolean;
+	resolver: (result: IteratorResult<TData>, runData: IEffectRunData<TOutput>) => void | ICancellableEffectInfo;
 }
 
 export interface ICallback<T = any> {
@@ -35,12 +30,12 @@ export interface IEffectRunData<TOutput = any> {
 	taskInputStream: IStream | undefined;
 }
 
-export interface IIteratorFactory<T> {
-	(...args: any[]): IterableIterator<T>;
-	name: string;
+export interface IIteratorFactory<T = any> {
+	(...args: any[]): Iterator<T>;
+	name?: string;
 }
 
-export type IEffectCollection = (IEffect | ICancellableEffect)[];
+export type IEffectCollection = (IEffect)[];
 
 export type IInputStreamFunction = (input: any) => void;
 export type IUnsubscribeFunction = () => void;
@@ -65,6 +60,6 @@ export interface ITaskOptions {
 }
 
 export interface ITaskStartInfo<T> {
-	name: string;
+	name?: string;
 	iterator: Iterator<T>;
 }
