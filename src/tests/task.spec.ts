@@ -1,27 +1,32 @@
-import { delay, DelayEffect } from '../effects/delay';
 import { Task } from '../task';
+
+function makeAsync() {
+	return 'makeAsync';
+}
+
+const makeAsyncEffect: IEffect<any, any> = {
+	canResolveResult(result): result is any {
+		return result.value === 'makeAsync';
+	},
+	run(result, runData) {
+		// resolve effect async
+		Promise.resolve().then(() => runData.next(null, null));
+	},
+};
 
 fdescribe('Task -', () => {
 	const oneYieldIterator = function* () { yield 5; };
-	const asyncIterator = function* () { yield delay(5); };
+	const asyncIterator = function* () { yield makeAsync(); };
 	const expectedError = new Error('oh ah');
-	const asyncErrorIterator = function* () { yield delay(5); throw expectedError; };
+	const asyncErrorIterator = function* () { yield makeAsync(); throw expectedError; };
 	const errorIterator = function* () { yield 5; throw expectedError; };
 
-	function createTask(it: Iterator<any>, cb: ICallback) {
+	function createTask(it: Iterator<any>, cb: ICallback, effects: IEffectCollection = []) {
 		return new Task('test', it, {
-			effects: [DelayEffect],
+			effects: [makeAsyncEffect].concat(effects),
 			callback: cb,
 		});
 	}
-
-	beforeEach(() => {
-		jasmine.clock().install();
-	});
-
-	afterEach(() => {
-		jasmine.clock().uninstall();
-	});
 
 	it('Executes complete callback when no child tasks', (done) => {
 		const task = createTask(oneYieldIterator(), (error) => {
@@ -47,7 +52,6 @@ fdescribe('Task -', () => {
 		});
 
 		task.start();
-		jasmine.clock().tick(5);
 	});
 
 	it('Executes complete callback after all child tasks done', (done) => {
@@ -79,7 +83,6 @@ fdescribe('Task -', () => {
 		});
 
 		task.start();
-		jasmine.clock().tick(5);
 	});
 
 	it('Executes complete callback with error', (done) => {
@@ -133,16 +136,15 @@ fdescribe('Task -', () => {
 		});
 
 		const childTask = task.scheduleChildTask({
-			iterator: (function* (): any { yield delay(10); })(),
+			iterator: (function* (): any {
+				while (true) {
+					yield makeAsync();
+				}
+			})(),
 			name: 'childTask',
 		});
 
 		task.start();
-
-		// wait for child start to start async
-		Promise.resolve().then(() => {
-			jasmine.clock().tick(5);
-		});
 	});
 
 	it('Error handling - fails main task when error in child task', (done) => {
@@ -164,16 +166,126 @@ fdescribe('Task -', () => {
 	it('Error handling - when iterator does not support throw', (done) => {
 		const task = createTask(
 			{
-				next: (): any => {
-					throw expectedError;
-				},
+				next: () => ({ done: false, value: '' }),
 			},
 			(error) => {
 				expect(error).toBe(expectedError);
 				expect(task.state).toBe('failed');
 				done();
+			}, [{
+				canResolveResult: (result): result is any => true,
+				run(result, runData) {
+					runData.next(expectedError);
+				},
+			}]);
+
+		task.start();
+	});
+
+	it('Error handling - when iterator does support throw and handles error', (done) => {
+		const task = createTask(
+			{
+				next: () => ({ done: false, value: '' }),
+				throw: () => ({ done: true, value: undefined }),
+			},
+			(error) => {
+				expect(error).toBeNull();
+				expect(task.state).toBe('complete');
+				done();
+			}, [{
+				canResolveResult: (result): result is any => true,
+				run(result, runData) {
+					runData.next(expectedError);
+				},
+			}]);
+
+		task.start();
+	});
+
+
+	it('Cancel task - when iterator does not support return', (done) => {
+		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
+			next: { done: false, value: 'makeAsync' },
+		});
+
+		const task = createTask(
+			iteratorSpy,
+			(error) => {
+				expect(error).toBeNull();
+				expect(task.state).toBe('cancelled');
+				done();
 			});
 
 		task.start();
+		task.cancel();
+	});
+
+	it('Cancel task - when iterator supports return', (done) => {
+		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
+			next: { done: false, value: 'makeAsync' },
+			return: { done: true, value: undefined },
+		});
+
+		const task = createTask(
+			iteratorSpy,
+			(error) => {
+				expect(error).toBeNull();
+				expect(task.state).toBe('cancelled');
+				expect(iteratorSpy.return).toHaveBeenCalled();
+				done();
+			});
+
+		task.start();
+		task.cancel();
+	});
+
+	it('Cancel task - cancells current cancellable effect', (done) => {
+		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
+			next: { done: false, value: 'cancellable' },
+		});
+
+		const cancelSpy = jasmine.createSpy('cancelEffect');
+
+		const effectSpy = jasmine.createSpyObj('effectSpy', {
+			canResolveResult: true,
+			run: { cancel: cancelSpy },
+		});
+
+		const task = createTask(
+			iteratorSpy,
+			(error) => {
+				expect(error).toBeNull();
+				expect(task.state).toBe('cancelled');
+				expect(cancelSpy).toHaveBeenCalled();
+				done();
+			}, [effectSpy]);
+
+		task.start();
+		task.cancel();
+	});
+
+	it('Error handling - fails the task when cancelling effect fails', (done) => {
+		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
+			next: { done: false, value: 'cancellable' },
+		});
+
+		const cancelSpy = jasmine.createSpy('cancelEffect').and.throwError(expectedError as any);
+
+		const effectSpy = jasmine.createSpyObj('effectSpy', {
+			canResolveResult: true,
+			run: { cancel: cancelSpy },
+		});
+
+		const task = createTask(
+			iteratorSpy,
+			(error) => {
+				expect(error).toBe(expectedError);
+				expect(task.state).toBe('failed');
+				expect(cancelSpy).toHaveBeenCalled();
+				done();
+			}, [effectSpy]);
+
+		task.start();
+		task.cancel();
 	});
 });
