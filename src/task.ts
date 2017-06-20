@@ -147,7 +147,12 @@ export class Task<T = any> implements ITask {
 				this.transitionStateToFrom(STATE_COMPLETE, STATE_RUNNING);
 			}
 
-			this.options.callback(this.error);
+			try {
+				this.options.callback(this.error);
+			} catch (error) {
+				// task is complete but there was a problem running the callback
+				this.options.callback(error);
+			}
 		}
 	}
 

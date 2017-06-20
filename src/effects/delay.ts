@@ -23,9 +23,11 @@ export const DelayEffect: ICancellableEffect<IDelayEffectDescription, void> = {
 	run(result: IteratorResult<IDelayEffectDescription>, runData: IEffectRunData) {
 		const { delay } = result.value;
 
-		const timeout = setTimeout(() => {
-			runData.next(null, null);
-		},                         delay);
+		const timeout = setTimeout(
+			() => {
+				runData.next(null, null);
+			},
+			delay);
 
 		return {
 			cancel: () => clearTimeout(timeout),

@@ -1,8 +1,11 @@
 {
-  "name": "sagalight",
+  "name": "saga-core",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
+  "scripts": {
+    "tests-watch": "node_modules/.bin/karma start"
+  },
   "devDependencies": {
     "@types/jasmine": "^2.5.52",
     "jasmine-core": "^2.6.4",
