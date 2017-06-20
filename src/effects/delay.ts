@@ -19,7 +19,7 @@ export function delay(delay: number): IDelayEffectDescription {
 }
 
 export const DelayEffect: ICancellableEffect<IDelayEffectDescription, void> = {
-	canResolveResult(result: IteratorResult<IDelayEffectDescription>): result is IteratorResult<IDelayEffectDescription> {
+	canResolveResult(result: IteratorResult<IDelayEffectDescription>) {
 		return result.value && result.value.effectIdentifier === DelayEffectIdentifier;
 	},
 	run(result: IteratorResult<IDelayEffectDescription>, runData: IEffectRunData) {

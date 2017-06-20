@@ -1,4 +1,5 @@
-import { Task } from '../task';
+import { Task } from '../core/task';
+import { IEffect, IEffectCollection, ICallback } from '../core/types';
 
 function makeAsync() {
 	return 'makeAsync';
@@ -8,7 +9,7 @@ const makeAsyncEffect: IEffect<any, any> = {
 	canResolveResult(result): result is any {
 		return result.value === 'makeAsync';
 	},
-	run(result, runData) {
+	run(_, runData) {
 		// resolve effect async
 		Promise.resolve().then(() => runData.next(null, null));
 	},
@@ -38,7 +39,7 @@ fdescribe('Task -', () => {
 	});
 
 	it('Sync task without children completes immediately', () => {
-		const task = createTask(oneYieldIterator(), (error) => { });
+		const task = createTask(oneYieldIterator(), () => { });
 
 		task.start();
 		expect(task.state).toBe('complete');
@@ -58,6 +59,7 @@ fdescribe('Task -', () => {
 		const task = createTask(oneYieldIterator(), (error) => {
 			expect(error).toBe(null);
 			expect(task.state).toBe('complete');
+			expect(childTask.state).toBe('complete');
 			done();
 		});
 
@@ -173,8 +175,8 @@ fdescribe('Task -', () => {
 				expect(task.state).toBe('failed');
 				done();
 			}, [{
-				canResolveResult: (result): result is any => true,
-				run(result, runData) {
+				canResolveResult: () => true,
+				run(_, runData) {
 					runData.next(expectedError);
 				},
 			}]);
@@ -193,8 +195,8 @@ fdescribe('Task -', () => {
 				expect(task.state).toBe('complete');
 				done();
 			}, [{
-				canResolveResult: (result): result is any => true,
-				run(result, runData) {
+				canResolveResult: () => true,
+				run(_, runData) {
 					runData.next(expectedError);
 				},
 			}]);

@@ -6,13 +6,13 @@ export const TakeEffectIdentifier = {
 	},
 };
 
-export interface ITakeEffectDescription<T = any> {
+export interface ITakeEffectDescription {
 	effectIdentifier: typeof TakeEffectIdentifier;
 	condition: (data: any) => boolean;
 	stream?: IStream;
 }
 
-export function take<T>(condition: (data: T) => boolean, stream?: IStream): ITakeEffectDescription<T> {
+export function take<T>(condition: (data: T) => boolean, stream?: IStream): ITakeEffectDescription {
 	return {
 		condition,
 		stream,
@@ -21,10 +21,10 @@ export function take<T>(condition: (data: T) => boolean, stream?: IStream): ITak
 }
 
 export const TakeEffect: ICancellableEffect<ITakeEffectDescription, void> = {
-	canResolveResult(result: IteratorResult<ITakeEffectDescription>): result is IteratorResult<ITakeEffectDescription> {
+	canResolveResult(result: IteratorResult<ITakeEffectDescription>) {
 		return result.value && result.value.effectIdentifier === TakeEffectIdentifier;
 	},
-	run<T>(result: IteratorResult<ITakeEffectDescription<T>>, runData: IEffectRunData<T>) {
+	run<T>(result: IteratorResult<ITakeEffectDescription>, runData: IEffectRunData<T>) {
 		const stream = result.value.stream || runData.taskInputStream;
 
 		if (!stream) {

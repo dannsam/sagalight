@@ -8,15 +8,15 @@ export const CancelledEffectIdentifier = {
 
 export type ICancelledEffectIdentifier = typeof CancelledEffectIdentifier;
 
-export function cancelled<T>() {
+export function cancelled() {
 	return CancelledEffectIdentifier;
 }
 
 export const CancelledEffect: IEffect<ICancelledEffectIdentifier, boolean> = {
-	canResolveResult(result: IteratorResult<any>): result is IteratorResult<ICancelledEffectIdentifier> {
+	canResolveResult(result: IteratorResult<any>) {
 		return result.value === CancelledEffectIdentifier;
 	},
-	run(result, runData: IEffectRunData<boolean>): void {
+	run(_, runData: IEffectRunData<boolean>): void {
 		runData.next(null, runData.isTaskCancelled);
 	},
 };

@@ -21,7 +21,7 @@ export function fork<T>(factory: IIteratorFactory<T>, ...args: any[]): IForkEffe
 }
 
 export const ForkEffect: IEffect<IForkEffectDescription, ITask> = {
-	canResolveResult(result: IteratorResult<IForkEffectDescription>): result is IteratorResult<IForkEffectDescription> {
+	canResolveResult(result: IteratorResult<IForkEffectDescription>) {
 		return result.value && result.value.effectIdentifier === ForkEffectIdentifier;
 	},
 	run<T>(result: IteratorResult<IForkEffectDescription<T>>, runData: IEffectRunData<ITask>) {

@@ -1,6 +1,3 @@
-export interface IEffectResolver<TInput> {
-	canResolveResult(result: IteratorResult<TInput>): result is IteratorResult<TInput>;
-}
 
 export type TaskState = 'new' | 'running' | 'cancelled' | 'complete' | 'failed' | 'being_cancelled';
 
@@ -9,6 +6,10 @@ export interface ITask {
 	next: ICallback;
 	readonly state: TaskState;
 	cancel(): void;
+}
+
+export interface IEffectResolver<TInput> {
+	canResolveResult(result: IteratorResult<TInput>): boolean;
 }
 
 export interface IEffect<TInput = any, TOutput= any> extends IEffectResolver<TInput> {
