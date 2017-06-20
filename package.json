@@ -1,19 +1,32 @@
 {
   "name": "saga-core",
   "version": "1.0.0",
-  "main": "index.js",
+  "main": "lib/saga-core.js",
+  "umd:main": "lib/saga-core.umd.js",
+  "module": "lib/saga-core.module.js",
+  "typings": "lib/saga-core.d.ts",
   "license": "MIT",
   "scripts": {
+    "build": "node scripts/build.js",
     "tests-watch": "node_modules/.bin/karma start"
   },
   "devDependencies": {
     "@types/jasmine": "^2.5.52",
+    "browserify": "^14.4.0",
     "jasmine-core": "^2.6.4",
     "karma": "^1.7.0",
     "karma-chrome-launcher": "^2.1.1",
     "karma-jasmine": "^1.1.0",
     "karma-typescript": "^3.0.4",
+    "rollup": "^0.41.6",
+    "rollup-plugin-filesize": "^1.3.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "rollup-plugin-progress": "^0.4.0",
+    "ts-loader": "^2.1.0",
+    "ts-loader-decleration": "^0.9.3",
+    "tslib": "^1.7.1",
     "tslint-config-airbnb": "^5.1.2",
-    "typescript": "^2.3.4"
+    "typescript": "^2.3.4",
+    "uglify-js": "2"
   }
 }

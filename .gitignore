@@ -57,6 +57,6 @@ typings/
 # dotenv environment variables file
 .env
 
-
-# Exclude build
-build/
+# Exclude build and lib
+.build/
+lib/
