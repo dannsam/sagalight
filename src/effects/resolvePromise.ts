@@ -1,3 +1,5 @@
+import { IEffect, IEffectRunData } from '../core/types';
+
 export const ResolvePromiseEffect: IEffect<Promise<any>, any> = {
 	canResolveResult(result: IteratorResult<Promise<any>>): result is IteratorResult<Promise<any>> {
 		return result.value instanceof Promise;

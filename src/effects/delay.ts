@@ -1,3 +1,5 @@
+import { IEffectRunData, ICancellableEffect } from '../core/types';
+
 export const DelayEffectIdentifier = {
 	toString(): '@sagalight/effect/delay' {
 		return '@sagalight/effect/delay';

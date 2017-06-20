@@ -1,4 +1,6 @@
 
+import { IInputStreamFunction, IStream, IUnsubscribeFunction } from './types';
+
 export class Stream implements IStream {
 	private subscriptions: IInputStreamFunction[] = [];
 

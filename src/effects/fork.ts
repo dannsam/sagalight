@@ -1,3 +1,5 @@
+import { IEffect, IEffectRunData, ITask, IIteratorFactory } from '../core/types';
+
 export const ForkEffectIdentifier = {
 	toString(): '@sagalight/effect/fork' {
 		return '@sagalight/effect/fork';
@@ -23,9 +25,9 @@ export const ForkEffect: IEffect<IForkEffectDescription, ITask> = {
 		return result.value && result.value.effectIdentifier === ForkEffectIdentifier;
 	},
 	run<T>(result: IteratorResult<IForkEffectDescription<T>>, runData: IEffectRunData<ITask>) {
-		const { factory, args } = result.value;
+		const factory = result.value.factory;
 
-		const iterator = factory(...args);
+		const iterator = factory(...result.value.args);
 
 		const childTask = runData.scheduleChildTask({
 			iterator,

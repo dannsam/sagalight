@@ -1,3 +1,5 @@
+import { IStream, ICancellableEffect, IEffectRunData } from '../core/types';
+
 export const TakeEffectIdentifier = {
 	toString(): '@sagalight/effect/take' {
 		return '@sagalight/effect/take';
@@ -29,7 +31,7 @@ export const TakeEffect: ICancellableEffect<ITakeEffectDescription, void> = {
 			throw new Error('Please provide input stream via run options or take(..., stream) in order to use TakeEffect');
 		}
 
-		const { condition } = result.value;
+		const condition = result.value.condition;
 
 		const unsubscribe = stream.subscribe((data) => {
 			let matches: boolean;
