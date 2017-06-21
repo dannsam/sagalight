@@ -5,7 +5,7 @@ import { fork } from '../effects/fork';
 import { take } from '../effects/take';
 import { delay } from '../effects/delay';
 
-fit('integration', (done) => {
+xit('integration', (done) => {
 	const input = new Stream();
 
 	function* processInput(input: string, output: Stream) {
@@ -56,7 +56,13 @@ fit('integration', (done) => {
 		}
 	}
 
-	runSaga({ input }, function* () {
+	runSaga({
+		input,
+		callback(error) {
+			expect(error.sagaStack).toBeNull();
+			done();
+		},
+	}, function* main() {
 		const output = new Stream();
 		let lastTask;
 
@@ -87,8 +93,36 @@ fit('integration', (done) => {
 						700);
 				},
 				200);
-		},
-		100);
 
+
+xit('take', (done) => {
+	const task = runSaga({
+		callback: () => {
+			done();
+		},
+	}, function* () {
+		while (true) {
+			yield take(() => true);
+		}
+	});
+
+	task.put('test');
+	task.put('test');
+
+	Promise.resolve().then(() => {
+		task.cancel();
+	});
 });
 
+
+xit('take - fork', (done) => {
+	const task = runSaga({
+		callback: () => {
+			done();
+		},
+	}, function* () {
+		debugger;
+		yield fork(function* f(): any { });
+		yield take(() => true);
+	});
+});

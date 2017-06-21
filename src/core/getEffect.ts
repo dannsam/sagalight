@@ -1,20 +1,12 @@
-import { IEffectCollection, IEffect, IEffectRunData } from './types';
-import { createResolver } from './util';
+import { IEffectFactoryCollection, IEffect } from './types';
 
-const test = () => true;
-const resolver = <T>(result: IteratorResult<T>, runData: IEffectRunData<T>) => {
-	runData.next(null, result.value);
-};
-
-const standardResolver = createResolver('standardResolver', test, resolver);
-
-export function getEffect<TInput = any>(result: IteratorResult<TInput>, effects: IEffectCollection): IEffect {
+export function getEffect<TInput = any>(result: IteratorResult<TInput>, effects: IEffectFactoryCollection): IEffect<any, any> | null {
 	for (let i = 0; i < effects.length; i++) {
 		const e = effects[i];
 		if (e.canResolve(result)) {
-			return e;
+			return e.create();
 		}
 	}
-
-	return standardResolver;
+	
+	return null;
 }

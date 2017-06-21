@@ -7,3 +7,4 @@ export { delay } from './effects/delay';
 export { fork } from './effects/fork';
 export { promiseResolver } from './effects/promiseResolver';
 export { take } from './effects/take';
+export { createEffectFactory, createResolverFactory } from './core/util';

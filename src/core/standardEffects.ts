@@ -1,12 +1,12 @@
 
-import { IEffectCollection, IEffect } from './types';
+import { IEffectFactoryCollection, IEffectFactory } from './types';
 
-const standardEffects: IEffectCollection = [];
+const standardEffects: IEffectFactoryCollection = [];
 
-export function getStandardEffects(): IEffectCollection {
+export function getStandardEffects(): IEffectFactoryCollection {
 	return standardEffects;
 }
 
-export function registerStandardEffect(effect: IEffect) {
+export function registerStandardEffect(effect: IEffectFactory) {
 	standardEffects.push(effect);
 }

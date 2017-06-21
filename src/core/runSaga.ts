@@ -3,6 +3,7 @@ import { IIteratorFactory, IRunOptions, ITaskOptions } from './types';
 import { isFunction } from './util';
 import { getStandardEffects } from './standardEffects';
 import { Stream } from './stream';
+import { getEffect } from './getEffect';
 
 function runSaga<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
 function runSaga<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
@@ -20,11 +21,14 @@ function runSaga<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factory
 		factory = factoryOrFirstArg;
 	}
 
+	const effects = options.effects instanceof Array ? options.effects : getStandardEffects();
 	const taskOptions: ITaskOptions = {
-		effects: options.effects instanceof Array ? options.effects : getStandardEffects(),
+		getEffect: d => getEffect(d, effects),
 		input: options.input || new Stream(),
 		callback: (error: Error) => {
-			if (error && !isFunction(options.callback)) {
+			if (isFunction(options.callback)) {
+				options.callback(error);
+			} else if (error) {
 				// unhandled rejection - throw 
 				throw error;
 			}

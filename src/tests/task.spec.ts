@@ -1,31 +1,37 @@
 import { Task } from '../core/task';
-import { IEffect, IEffectCollection, ICallback } from '../core/types';
+import { ICallback, IEffect } from '../core/types';
 
 function makeAsync() {
 	return 'makeAsync';
 }
 
-const makeAsyncEffect: IEffect<any, any> = {
-	effectName: 'makeAsync',
-	canResolve(result): result is any {
-		return result.value === 'makeAsync';
-	},
-	resolver(_, runData) {
-		// resolve effect async
-		Promise.resolve().then(() => runData.next(null, null));
-	},
-};
 
-describe('Task -', () => {
+function createAsyncEffect(): IEffect<any, any> {
+	return {
+		name: 'async',
+		run(_: any, runData: any) {
+			Promise.resolve().then(() => runData.next(null, null));
+		},
+	};
+}
+
+fdescribe('Task -', () => {
 	const oneYieldIterator = function* () { yield 5; };
-	const asyncIterator = function* () { yield makeAsync(); };
+	const asyncIterator = function* () { yield 'makeAsync'; };
 	const expectedError = new Error('oh ah');
-	const asyncErrorIterator = function* () { yield makeAsync(); throw expectedError; };
+	const asyncErrorIterator = function* () { yield 'makeAsync'; throw expectedError; };
 	const errorIterator = function* () { yield 5; throw expectedError; };
 
-	function createTask(it: Iterator<any>, cb: ICallback, effects: IEffectCollection = []) {
+	function createTask(it: Iterator<any>, cb: ICallback, getEffect?: (result: IteratorResult<any>) => IEffect<any, any> | null) {
 		return new Task('test', it, {
-			effects: [makeAsyncEffect].concat(effects),
+			getEffect: getEffect || ((result): IEffect<any, any> | null => {
+				debugger;
+				if (result.value === 'makeAsync') {
+					return createAsyncEffect();
+				}
+
+				return null;
+			}),
 			callback: cb,
 		});
 	}
@@ -175,13 +181,14 @@ describe('Task -', () => {
 				expect(error).toBe(expectedError);
 				expect(task.state).toBe('failed');
 				done();
-			}, [{
-				effectName: 'testEffect',
-				canResolve: () => true,
-				resolver(_, runData) {
-					runData.next(expectedError);
-				},
-			}]);
+			}, () => {
+				return {
+					name: 'testEffect',
+					run(_, runData) {
+						runData.next(expectedError);
+					},
+				};
+			});
 
 		task.start();
 	});
@@ -196,13 +203,14 @@ describe('Task -', () => {
 				expect(error).toBeNull();
 				expect(task.state).toBe('complete');
 				done();
-			}, [{
-				effectName: 'testEffect',
-				canResolve: () => true,
-				resolver(_, runData) {
-					runData.next(expectedError);
-				},
-			}]);
+			}, () => {
+				return {
+					name: 'testEffect',
+					run(_, runData) {
+						runData.next(expectedError);
+					},
+				};
+			});
 
 		task.start();
 	});
@@ -250,10 +258,12 @@ describe('Task -', () => {
 		});
 
 		const cancelSpy = jasmine.createSpy('cancelEffect');
-
-		const effectSpy = jasmine.createSpyObj('effectSpy', {
-			canResolve: true,
-			resolver: { cancel: cancelSpy },
+		const getEffectSpy = jasmine.createSpy('getEffectSpy').and.callFake(() => {
+			return {
+				name: 'cancellable',
+				run: () => { },
+				cancel: cancelSpy,
+			};
 		});
 
 		const task = createTask(
@@ -263,23 +273,25 @@ describe('Task -', () => {
 				expect(task.state).toBe('cancelled');
 				expect(cancelSpy).toHaveBeenCalled();
 				done();
-			}, [effectSpy]);
+			}, getEffectSpy);
 
 		task.start();
 		task.cancel();
 	});
 
-	it('Cancel task - cancels the current cancellable effect following by an async effect', (done) => {
+	it('Cancel task - cancels the current cancellable effect following by an effect', (done) => {
 		const cancelSpy = jasmine.createSpy('cancelEffect');
-
-		const effectSpy = jasmine.createSpyObj('effectSpy', {
-			canResolve: d => d.value === 'cancellable',
-			resolver: { cancel: cancelSpy },
+		const getEffectSpy = jasmine.createSpy('getEffectSpy').and.callFake(() => {
+			return {
+				name: 'cancellable',
+				run: () => { },
+				cancel: cancelSpy,
+			};
 		});
 
 		const task = createTask(
 			function* () {
-				yield 'makeAsync';
+				yield 'nonCancellable';
 				yield 'cancellable';
 			}(),
 			(error) => {
@@ -287,7 +299,7 @@ describe('Task -', () => {
 				expect(task.state).toBe('cancelled');
 				expect(cancelSpy).toHaveBeenCalled();
 				done();
-			}, [effectSpy]);
+			}, getEffectSpy);
 
 		task.start();
 		task.cancel();
@@ -300,11 +312,6 @@ describe('Task -', () => {
 
 		const cancelSpy = jasmine.createSpy('cancelEffect').and.throwError(expectedError as any);
 
-		const effectSpy = jasmine.createSpyObj('effectSpy', {
-			canResolve: true,
-			resolver: { cancel: cancelSpy },
-		});
-
 		const task = createTask(
 			iteratorSpy,
 			(error) => {
@@ -312,9 +319,48 @@ describe('Task -', () => {
 				expect(task.state).toBe('failed');
 				expect(cancelSpy).toHaveBeenCalled();
 				done();
-			}, [effectSpy]);
+			}, () => ({
+				name: 'test',
+				run: () => { },
+				cancel: cancelSpy,
+			}));
 
 		task.start();
 		task.cancel();
+	});
+
+	it('Error handling - errors bubble up', (done) => {
+		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
+			next: { done: false, value: 'never_ending' },
+			throw: { done: true, value: undefined },
+		});
+
+		const task = createTask(
+			iteratorSpy,
+			(error) => {
+				const stack = error.sagaStack;
+				expect(stack).toContain('at childTask');
+				expect(stack).toContain('at test');
+				expect(childTask.state).toBe('failed');
+				expect(task.state).toBe('failed');
+				done();
+			}, (result) => {
+				if (result.value === 'never_ending') {
+					return {
+						effectName: 'testEffect',
+						run: () => {
+							// never ending effect
+						},
+					};
+				}
+				return null;
+			});
+
+		const childTask = task.scheduleChildTask({
+			iterator: errorIterator(),
+			name: 'childTask',
+		});
+
+		task.start();
 	});
 });

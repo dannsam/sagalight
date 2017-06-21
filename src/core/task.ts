@@ -1,7 +1,5 @@
-import { getEffect } from './getEffect';
 import { isFunction } from './util';
-import { ITaskStartInfo, TaskState, ITask, ITaskOptions, ICancellableEffectInfo } from './types';
-import { Stream } from './stream';
+import { ITaskStartInfo, TaskState, ITask, ITaskOptions, IEffect, SagaError } from './types';
 
 const TASK_CANCEL = {
 	toString() {
@@ -16,6 +14,8 @@ const STATE_CANCELLED = 'cancelled';
 const STATE_COMPLETE = 'complete';
 const STATE_FAILED = 'failed';
 
+let taskId = 0;
+
 export class Task<T = any> implements ITask {
 	public state: TaskState = STATE_NEW;
 	public isMainComplete = false;
@@ -23,13 +23,15 @@ export class Task<T = any> implements ITask {
 
 	private childTasks: ITask[] = [];
 	private error: Error | null = null;
-	private currentCancellableEffect: ICancellableEffectInfo | null | void = null;
+	private currentEffect: IEffect<any, any> | null = null;
+	private taskId: string;
 
 	constructor(
-		private name: string | undefined,
+		name: string | undefined,
 		private iterator: Iterator<T>,
-		private options: ITaskOptions,
-		private parent?: ITask | undefined) {
+		private options: ITaskOptions) {
+
+		this.taskId = `${name}[${taskId++}]`;
 	}
 
 	public start() {
@@ -86,13 +88,22 @@ export class Task<T = any> implements ITask {
 			}
 
 			if (!result.done) {
-				const effect = getEffect(result, this.options.effects);
-				this.currentCancellableEffect = effect.resolver(result, {
-					next: this.next,
-					isTaskCancelled: this.state === STATE_BEING_CANCELLED || this.state === STATE_CANCELLED,
-					scheduleChildTask: this.scheduleChildTask,
-					taskInputStream: this.options.input,
-				});
+				this.currentEffect = this.options.getEffect(result);
+
+				console.log(`${this.taskId} running '${this.currentEffect ? (this.currentEffect.name || 'unnamedEffect') : 'standard'}'`);
+
+				if (this.currentEffect) {
+					this.currentEffect.run(result, {
+						next: this.next,
+						isTaskCancelled: this.state === STATE_BEING_CANCELLED || this.state === STATE_CANCELLED,
+						scheduleChildTask: this.scheduleChildTask,
+						taskInputStream: this.options.input,
+						taskId: this.taskId,
+					});
+				} else {
+					this.next(null, result.value);
+				}
+
 			} else {
 				this.isMainComplete = true;
 				this.onComplete();
@@ -108,22 +119,18 @@ export class Task<T = any> implements ITask {
 		const childTask = new Task(
 			startInfo.name,
 			startInfo.iterator, {
-				effects: this.options.effects,
+				getEffect: this.options.getEffect,
 				input: this.options.input,
 				callback: (error) => {
 					this.childTasks.splice(this.childTasks.indexOf(childTask), 1);
 
 					if (error) {
-						// unhandled rejection in child task
-						// stopping and failing the current task
-						this.error = error;
-						this.cancel();
+						this.onError(error);
+					} else {
+						this.onComplete();
 					}
-
-					this.onComplete();
 				},
-			},
-			this);
+			});
 
 		this.childTasks.push(childTask);
 
@@ -135,9 +142,14 @@ export class Task<T = any> implements ITask {
 		return childTask;
 	}
 
-	private onError(error: Error) {
+	private onError(error: SagaError) {
 		// unhandled error in main
 		// let's try cancelling all the child tasks
+
+		if (error instanceof Error) {
+			error.sagaStack = `at ${this.taskId} \n ${error.sagaStack || error.stack}`;
+		}
+
 		this.error = error;
 		this.isMainComplete = true;
 
@@ -155,12 +167,7 @@ export class Task<T = any> implements ITask {
 				this.transitionStateToFrom(STATE_COMPLETE, STATE_RUNNING);
 			}
 
-			try {
-				this.options.callback(this.error);
-			} catch (error) {
-				// task is complete but there was a problem running the callback
-				this.options.callback(error);
-			}
+			this.options.callback(this.error);
 		}
 	}
 
@@ -172,16 +179,21 @@ export class Task<T = any> implements ITask {
 
 	private transitionStateToFrom(newState: TaskState, ...expectedStates: TaskState[]): void | never {
 		this.validateState(...expectedStates);
+
+		console.log(`${this.taskId} ${this.state} -> ${newState}`);
+
 		this.state = newState;
 	}
 
 	private cancelCurrentEffect() {
-		const effect = this.currentCancellableEffect;
+		const effect = this.currentEffect;
 		if (effect) {
-			this.currentCancellableEffect = null;
+			this.currentEffect = null;
 
 			try {
-				effect.cancel();
+				if (effect.cancel) {
+					effect.cancel();
+				}
 			} catch (error) {
 				this.onError(error);
 			}

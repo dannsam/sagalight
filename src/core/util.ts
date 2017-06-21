@@ -1,6 +1,5 @@
-
-import { IEffectRunData, IEffect, ICancellableEffectInfo } from './types';
 import { registerStandardEffect } from './standardEffects';
+import { IEffectFactory, IEffect, IResolverFactory } from './types';
 
 export function isFunction(test: any): test is Function {
 	return typeof test === 'function';
@@ -8,67 +7,70 @@ export function isFunction(test: any): test is Function {
 
 const effectIdentifierKey = '@saga-core/effect';
 
-export function createEffectIdentifier(effectName: string) {
-	return {
-		[effectIdentifierKey]: effectName,
-	};
-}
-
-export function createEffect<TDataFunction extends (...args: any[]) => TData, TData, TOutput>(
+export function createEffectFactory<TDataFunction extends (...args: any[]) => TData, TData, TOutput>(
 	effectName: string,
 	dataFn: TDataFunction,
-	resolver: (result: IteratorResult<TData>, runData: IEffectRunData<TOutput>) => void | ICancellableEffectInfo,
-	isStandard?: boolean,
-): TDataFunction & IEffect<TData, TOutput> {
+	create: () => IEffect<TData, TOutput>,
+	isStandard: boolean = false,
+): IEffectFactory<TDataFunction, TData, TOutput> {
 
 	const effect = ((...args: any[]) => {
 		const data: any = dataFn(...args);
 		data[effectIdentifierKey] = effectName;
 		return data;
-	}) as TDataFunction & IEffect<TData, TOutput>;
+	}) as IEffectFactory<TDataFunction, TData, TOutput>;
 
-	effect.effectName = effectName;
-	effect.resolver = ensureResolverCancelInfoContainsName(effectName, resolver);
-
-	effect.canResolve = (result: any): boolean => {
-		return result.value[effectIdentifierKey] === effectName;
-	};
-
-	if (isStandard) {
-		registerStandardEffect(effect);
-	}
-
-	return effect;
+	return createFactory(
+		effect,
+		effectName,
+		/* test */
+		(result: any): boolean => result.value[effectIdentifierKey] === effectName,
+		create,
+		isStandard);
 }
 
-export function createResolver<TData, TOutput>(
+export function createResolverFactory<TData, TOutput>(
 	effectName: string,
 	test: (result: IteratorResult<TData>) => boolean,
-	resolver: (result: IteratorResult<TData>, runData: IEffectRunData<TOutput>) => void | ICancellableEffectInfo,
-	isStandard?: boolean,
-): IEffect<TData, TOutput> {
-
-	const effect: IEffect<TData, TOutput> = {
-		effectName,
-		resolver: ensureResolverCancelInfoContainsName(effectName, resolver),
-		canResolve: test,
-	};
-
-	if (isStandard) {
-		registerStandardEffect(effect);
-	}
-
-	return effect;
+	create: () => IEffect<TData, TOutput>,
+	isStandard: boolean = false,
+): IResolverFactory<TData, TOutput> {
+	return createFactory({}, effectName, test, create, isStandard);
 }
 
-function ensureResolverCancelInfoContainsName<TData, TOutput>(
+function createFactory<TDataFunction, TData, TOutput>(
+	target: TDataFunction & Partial<IResolverFactory<TData, TOutput>>,
+	effectName: string,
+	test: (result: IteratorResult<TData>) => boolean,
+	create: () => IEffect<TData, TOutput>,
+	isStandard: boolean) {
+
+	target.effectName = effectName;
+	target.create = ensureCreateHasEffectName(effectName, create);
+	target.canResolve = test;
+
+	if (isStandard) {
+		registerStandardEffect(target);
+	}
+
+	return target as TDataFunction & IResolverFactory<TData, TOutput>;
+}
+
+function ensureCreateHasEffectName<TData, TOutput>(
 	name: string,
-	resolver: (result: IteratorResult<TData>, runData: IEffectRunData<TOutput>) => void | ICancellableEffectInfo) {
-	return (result: IteratorResult<TData>, runData: IEffectRunData<TOutput>) => {
-		const cancelInfo = resolver(result, runData);
-		if (cancelInfo) {
-			cancelInfo.effectName = name;
-		}
-		return cancelInfo;
+	create: () => IEffect<TData, TOutput>) {
+	return () => {
+		const effectInfo = create();
+		effectInfo.name = name;
+		return effectInfo;
 	};
+}
+
+export function log(level: 'info' | 'warn' | 'error', message: string, error: string | Error = '') {
+	if (typeof window === 'undefined') {
+		const stack = error instanceof Error ? error.stack : error;
+		console.log(`saga-core ${level}: ${message}\n${stack}`);
+	} else {
+		console[level](message, error);
+	}
 }

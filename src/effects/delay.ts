@@ -1,30 +1,31 @@
-import { IEffectRunData, IEffect } from '../core/types';
-import { createEffect } from '../core/util';
+import { createEffectFactory } from '../core/util';
+import { IEffect, IEffectRunData } from '../core/types';
 
 export interface IDelayEffectData {
 	delay: number;
-}
-
-export interface IDelayEffect extends IEffect<IDelayEffectData, null> {
-	(delay: number): IDelayEffectData;
 }
 
 const isStandardEffect = true;
 
 const dataFn = (delay: number) => ({ delay });
 
-const resolver = (result: IteratorResult<IDelayEffectData>, runData: IEffectRunData<null>) => {
-	const { delay } = result.value;
-
-	const timeout = setTimeout(
-		() => {
-			runData.next(null, null);
-		},
-		delay);
+const create = (): IEffect<IDelayEffectData, null> => {
+	let timeout: number;
 
 	return {
-		cancel: () => clearTimeout(timeout),
+		run(result: IteratorResult<IDelayEffectData>, runData: IEffectRunData<null>) {
+			const { delay } = result.value;
+
+			timeout = setTimeout(
+				() => {
+					runData.next(null, null);
+				},
+				delay);
+		},
+		cancel() {
+			clearTimeout(timeout);
+		},
 	};
 };
 
-export const delay: IDelayEffect = createEffect('delay', dataFn, resolver, isStandardEffect);
+export const delay = createEffectFactory('delay', dataFn, create, isStandardEffect);

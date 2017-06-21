@@ -1,6 +1,8 @@
 
 export type TaskState = 'new' | 'running' | 'cancelled' | 'complete' | 'failed' | 'being_cancelled';
 
+export type SagaError = Error & { sagaStack?: string };
+
 export interface ITask {
 	scheduleChildTask(child: ITaskStartInfo<any>): ITask;
 	next: ICallback;
@@ -8,34 +10,38 @@ export interface ITask {
 	cancel(): void;
 }
 
-export interface ICancellableEffectInfo {
-	effectName?: string;
-	cancel(): void;
-}
-
-export interface IEffect<TData = any, TOutput = any> {
+export type IResolverFactory<TData = any, TOutput = any> = {
 	effectName: string;
 	canResolve: (result: IteratorResult<TData>) => boolean;
-	resolver: (result: IteratorResult<TData>, runData: IEffectRunData<TOutput>) => void | ICancellableEffectInfo;
-}
+	create(): IEffect<TData, TOutput>;
+};
 
-export interface ICallback<T = any> {
-	(error: null | Error, result?: T): void;
+export type IEffectFactory<TDataFunction = any, TData = any, TOutput= any> = IResolverFactory<TData, TOutput> & TDataFunction;
+
+export type IEffectFactoryCollection = IResolverFactory[];
+
+export interface IEffect<TData, TOutput> {
+	name?: string;
+	run(result: IteratorResult<TData>, runData: IEffectRunData<TOutput>): void;
+	cancel?: () => void;
 }
 
 export interface IEffectRunData<TOutput = any> {
 	next: ICallback<TOutput>;
+	taskId: string;
 	isTaskCancelled: boolean;
 	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
 	taskInputStream: IStream | undefined;
+}
+
+export interface ICallback<T = any> {
+	(error: null | SagaError, result?: T): void;
 }
 
 export interface IIteratorFactory<T = any> {
 	(...args: any[]): Iterator<T>;
 	name?: string;
 }
-
-export type IEffectCollection = (IEffect)[];
 
 export type IInputStreamFunction = (input: any) => void;
 export type IUnsubscribeFunction = () => void;
@@ -48,15 +54,15 @@ export interface IStream {
 }
 
 export interface IRunOptions {
-	effects?: IEffectCollection;
+	effects?: IEffectFactoryCollection;
 	input?: IStream;
 	callback?: ICallback;
 }
 
 export interface ITaskOptions {
-	effects: IEffectCollection;
 	input?: IStream;
 	callback: ICallback;
+	getEffect: (result: IteratorResult<any>) => IEffect<any, any> | null;
 }
 
 export interface ITaskStartInfo<T> {
