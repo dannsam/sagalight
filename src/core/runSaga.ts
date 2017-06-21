@@ -4,9 +4,9 @@ import { isFunction } from './util';
 import { getStandardEffects } from './standardEffects';
 import { Stream } from './stream';
 
-function run<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
-function run<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
-function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFirstArg: IIteratorFactory<T> | any, ...args: any[]): Task<T> {
+function runSaga<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
+function runSaga<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
+function runSaga<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFirstArg: IIteratorFactory<T> | any, ...args: any[]): Task<T> {
 	let options: IRunOptions;
 	let factory: IIteratorFactory<T>;
 
@@ -39,4 +39,4 @@ function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFi
 	return task;
 }
 
-export { run };
+export { runSaga };

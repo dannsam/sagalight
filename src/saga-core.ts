@@ -1,4 +1,4 @@
-export { run as runSaga } from './core/run';
+export { runSaga } from './core/runSaga';
 export { Task } from './core/task';
 export { Stream } from './core/stream';
 

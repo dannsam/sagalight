@@ -1,4 +1,4 @@
-import { run } from '../core/run';
+import { runSaga } from '../core/runSaga';
 import { Stream } from '../core/stream';
 import { cancelled } from '../effects/cancelled';
 import { fork } from '../effects/fork';
@@ -56,7 +56,7 @@ fit('integration', (done) => {
 		}
 	}
 
-	run({ input }, function* () {
+	runSaga({ input }, function* () {
 		const output = new Stream();
 		let lastTask;
 
