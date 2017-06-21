@@ -269,6 +269,30 @@ describe('Task -', () => {
 		task.cancel();
 	});
 
+	it('Cancel task - cancels the current cancellable effect following by an async effect', (done) => {
+		const cancelSpy = jasmine.createSpy('cancelEffect');
+
+		const effectSpy = jasmine.createSpyObj('effectSpy', {
+			canResolve: d => d.value === 'cancellable',
+			resolver: { cancel: cancelSpy },
+		});
+
+		const task = createTask(
+			function* () {
+				yield 'makeAsync';
+				yield 'cancellable';
+			}(),
+			(error) => {
+				expect(error).toBeNull();
+				expect(task.state).toBe('cancelled');
+				expect(cancelSpy).toHaveBeenCalled();
+				done();
+			}, [effectSpy]);
+
+		task.start();
+		task.cancel();
+	});
+
 	it('Error handling - fails the task when cancelling effect fails', (done) => {
 		const iteratorSpy = jasmine.createSpyObj('iteratorResult', {
 			next: { done: false, value: 'cancellable' },
