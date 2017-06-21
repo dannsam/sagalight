@@ -3,6 +3,7 @@ const fs = require("fs-extra");
 const path = require("path");
 const ts = require("typescript");
 const exec = require("child_process").execSync;
+const dtsBuilder = require('dts-builder');
 
 // make sure we're in the right folder
 process.chdir(path.resolve(__dirname, ".."));
@@ -35,8 +36,6 @@ function runTypeScriptBuild(outDir, target, declarations) {
 	options.module = ts.ModuleKind.ES2015;
 	options.importHelpers = true;
 	options.noEmitHelpers = true;
-	if (declarations)
-		options.declarationDir = path.resolve(".", "lib");
 
 	const rootFile = path.resolve("src", "saga-core.ts");
 	const host = ts.createCompilerHost(options, true);
@@ -75,7 +74,7 @@ function generateBundledModule(inputFile, outputFile, format) {
 
 function generateUmd() {
 	console.log("Generating saga-core.umd.js");
-    const browserify = require('browserify');
+	const browserify = require('browserify');
 
 	exec(`${binFolder}/browserify -s saga-core -e lib/saga-core.js -o lib/saga-core.umd.js`);
 }
@@ -88,6 +87,20 @@ function generateMinified() {
 	exec(
 		`${binFolder}/uglifyjs -m sort,toplevel -c warnings=false --screw-ie8 --preamble "/** saga-core - (c) Daniil Samoylov 2017 - MIT Licensed */" --source-map -o lib/saga-core.umd.min.js lib/saga-core.umd.js`
 	);
+}
+
+function buildDeclarations(inputDir, outputDir) {
+
+	console.log(`Buuilding declarations`);
+
+	return dtsBuilder.generateBundles([
+		{
+			name: 'saga-core',
+			sourceDir: inputDir,
+			destDir: outputDir,
+			wrap: false
+		}
+	]);
 }
 
 function build() {
@@ -104,6 +117,11 @@ function build() {
 			path.resolve(".build", "saga-core.js"),
 			path.resolve("lib", "saga-core.module.js"),
 			"es"
+		),
+
+		buildDeclarations(
+			path.resolve(".build"),
+			path.resolve("lib")
 		)
 
 	]).then(() => {
