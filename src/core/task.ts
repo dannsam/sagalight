@@ -1,6 +1,7 @@
 import { getEffect } from './getEffect';
 import { isFunction } from './util';
 import { ITaskStartInfo, TaskState, ITask, ITaskOptions, ICancellableEffectInfo } from './types';
+import { Stream } from './stream';
 
 const TASK_CANCEL = {
 	toString() {
@@ -29,7 +30,6 @@ export class Task<T = any> implements ITask {
 		private iterator: Iterator<T>,
 		private options: ITaskOptions,
 		private parent?: ITask | undefined) {
-
 	}
 
 	public start() {
@@ -46,6 +46,14 @@ export class Task<T = any> implements ITask {
 		} else if (this.state === STATE_NEW) {
 			this.isCancelledBeforeStart = true;
 		}
+	}
+
+	public put(input: any) {
+		if (!this.options.input) {
+			throw new Error('Please provide input stream via run options in order to use put()');
+		}
+
+		this.options.input.put(input);
 	}
 
 	next = (error: Error | null, input: any) => {

@@ -1,7 +1,8 @@
 import { Task } from './task';
-import { isFunction } from './util';
 import { IIteratorFactory, IRunOptions, ITaskOptions } from './types';
+import { isFunction } from './util';
 import { getStandardEffects } from './standardEffects';
+import { Stream } from './stream';
 
 function run<T>(factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
 function run<T>(options: IRunOptions, factory: IIteratorFactory<T>, ...args: any[]): Task<T>;
@@ -21,7 +22,7 @@ function run<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factoryOrFi
 
 	const taskOptions: ITaskOptions = {
 		effects: options.effects instanceof Array ? options.effects : getStandardEffects(),
-		input: options.input,
+		input: options.input || new Stream(),
 		callback: (error: Error) => {
 			if (error && !isFunction(options.callback)) {
 				// unhandled rejection - throw 
