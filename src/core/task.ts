@@ -23,6 +23,7 @@ export class Task<T = any> implements ITask {
 
 	private childTasks: ITask[] = [];
 	private error: Error | null = null;
+	private returnValue: T | null = null;
 	private currentEffect: IEffect<any, any> | null = null;
 	private taskId: string;
 
@@ -93,16 +94,17 @@ export class Task<T = any> implements ITask {
 			if (!result.done) {
 				this.currentEffect = this.options.getEffect(result.value);
 
-				this.log('info', `${this.taskId} running '${this.currentEffect ? (this.currentEffect.name || 'unnamedEffect') : 'standard'}'`);
-
 				if (this.currentEffect) {
+					this.log('info', `${this.taskId} running effect '${this.currentEffect.name || 'unnamedEffect'}'`);
 					this.currentEffect.run(result.value, this.effectRunData);
 				} else {
+					this.log('info', `${this.taskId} resolving without effect`);
 					this.next(null, result.value);
 				}
 
 			} else {
 				this.isMainComplete = true;
+				this.returnValue = result.value;
 				this.onComplete();
 			}
 		} catch (error) {
@@ -165,7 +167,7 @@ export class Task<T = any> implements ITask {
 				this.transitionStateToFrom(STATE_COMPLETE, STATE_RUNNING);
 			}
 
-			this.options.callback(this.error);
+			this.options.callback(this.error, this.returnValue);
 		}
 	}
 
@@ -227,6 +229,9 @@ export class Task<T = any> implements ITask {
 			},
 			get getEffect() {
 				return task.options.getEffect;
+			},
+			get logger() {
+				return task.options.logger;
 			},
 		};
 	}

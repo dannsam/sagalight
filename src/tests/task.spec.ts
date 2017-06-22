@@ -382,4 +382,19 @@ describe('Task -', () => {
 		expect(getEffectSpy).toHaveBeenCalledWith('effect2');
 	});
 
+	it('Returns returnValue', (done) => {
+		const getEffectSpy = jasmine.createSpy('getEffectSpy');
+
+		const task = createTask(
+			function* () {
+				return 'expectedResultValue';
+			}(),
+			(_, result) => {
+				expect(result).toBe('expectedResultValue');
+				expect(task.state).toBe('complete');
+				done();
+			}, getEffectSpy);
+
+		task.start();
+	});
 });

@@ -16,7 +16,7 @@ export type IResolverFactory<TData = any, TOutput = any> = {
 	create(): IEffect<TData, TOutput>;
 };
 
-export type IEffectFactory<TDataFunction = any, TData = any, TOutput= any> =  IResolverFactory<TData, TOutput> & TDataFunction;
+export type IEffectFactory<TDataFunction = any, TData = any, TOutput= any> = IResolverFactory<TData, TOutput> & TDataFunction;
 
 export type IEffectFactoryCollection = IResolverFactory[];
 
@@ -37,6 +37,7 @@ export interface IEffectRunData<TOutput = any> {
 	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
 	getEffect: (result: any) => IEffect<any, any> | null;
 	readonly taskInputStream: IStream | undefined;
+	readonly logger: ILogger | null;
 }
 
 export interface ICallback<T = any> {
@@ -82,3 +83,4 @@ export interface ITaskStartInfo<T> {
 	name?: string;
 	iterator: Iterator<T>;
 }
+

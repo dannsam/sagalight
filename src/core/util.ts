@@ -1,10 +1,6 @@
 import { registerStandardEffect } from './standardEffects';
 import { IEffect, IEffectFactory, IResolverFactory, LoggerLevel, IWrappedEffectData } from './types';
 
-export function isFunction(test: any): test is Function {
-	return typeof test === 'function';
-}
-
 const effectIdentifierKey = '@SagaLight/effect';
 
 export function createEffectFactory<TDataFunction extends (...args: any[]) => TData, TData, TOutput>(
@@ -80,4 +76,12 @@ export function createLogger(...levels: LoggerLevel[]) {
 			console[level](message, error);
 		}
 	};
+}
+
+export function isFunction(test: any): test is Function {
+	return typeof test === 'function';
+}
+
+export function isIterator(obj: Iterator<any>): obj is Iterator<any> {
+	return isFunction(obj.next) && isFunction(obj.throw);
 }
