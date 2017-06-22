@@ -15,19 +15,18 @@ function createAsyncEffect(): IEffect<any, any> {
 	};
 }
 
-fdescribe('Task -', () => {
+describe('Task -', () => {
 	const oneYieldIterator = function* () { yield 5; };
 	const asyncIterator = function* () { yield 'makeAsync'; };
 	const expectedError = new Error('oh ah');
 	const asyncErrorIterator = function* () { yield 'makeAsync'; throw expectedError; };
 	const errorIterator = function* () { yield 5; throw expectedError; };
 
-	function createTask(it: Iterator<any>, cb: ICallback, getEffect?: (result: IteratorResult<any>) => IEffect<any, any> | null) {
+	function createTask(it: Iterator<any>, cb: ICallback, getEffect?: (result: any) => IEffect<any, any> | null) {
 		return new Task('test', it, {
 			logger: null,
 			getEffect: getEffect || ((result): IEffect<any, any> | null => {
-				debugger;
-				if (result.value === 'makeAsync') {
+				if (result === 'makeAsync') {
 					return createAsyncEffect();
 				}
 
@@ -212,7 +211,6 @@ fdescribe('Task -', () => {
 					},
 				};
 			});
-
 		task.start();
 	});
 
@@ -348,7 +346,7 @@ fdescribe('Task -', () => {
 				expect(task.state).toBe('failed');
 				done();
 			}, (result) => {
-				if (result.value === 'never_ending') {
+				if (result === 'never_ending') {
 					return {
 						effectName: 'testEffect',
 						run: () => {
@@ -363,7 +361,25 @@ fdescribe('Task -', () => {
 			iterator: errorIterator(),
 			name: 'childTask',
 		});
-
 		task.start();
 	});
+
+	it('Passes correct value to getEffect', () => {
+		const getEffectSpy = jasmine.createSpy('getEffectSpy');
+
+		const task = createTask(
+			function* () {
+				yield 'effect1';
+				yield 'effect2';
+			}(),
+			() => {
+			}, getEffectSpy);
+
+		task.start();
+
+		expect(task.state).toBe('complete');
+		expect(getEffectSpy).toHaveBeenCalledWith('effect1');
+		expect(getEffectSpy).toHaveBeenCalledWith('effect2');
+	});
+
 });

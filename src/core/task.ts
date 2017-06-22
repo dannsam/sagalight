@@ -1,5 +1,5 @@
 import { isFunction } from './util';
-import { IEffect, ILogger, ITask, ITaskOptions, ITaskStartInfo, SagaError, TaskState } from './types';
+import { IEffect, ILogger, ITask, ITaskOptions, ITaskStartInfo, SagaError, TaskState, IEffectRunData } from './types';
 
 const TASK_CANCEL = {
 	toString() {
@@ -26,12 +26,15 @@ export class Task<T = any> implements ITask {
 	private currentEffect: IEffect<any, any> | null = null;
 	private taskId: string;
 
+	private effectRunData: IEffectRunData<any>;
+
 	constructor(
 		name: string | undefined,
 		private iterator: Iterator<T>,
 		private options: ITaskOptions) {
 
 		this.taskId = `${name}[${taskId++}]`;
+		this.effectRunData = this.createEffectRunData(this);
 	}
 
 	public start() {
@@ -88,18 +91,12 @@ export class Task<T = any> implements ITask {
 			}
 
 			if (!result.done) {
-				this.currentEffect = this.options.getEffect(result);
+				this.currentEffect = this.options.getEffect(result.value);
 
 				this.log('info', `${this.taskId} running '${this.currentEffect ? (this.currentEffect.name || 'unnamedEffect') : 'standard'}'`);
 
 				if (this.currentEffect) {
-					this.currentEffect.run(result, {
-						next: this.next,
-						isTaskCancelled: this.state === STATE_BEING_CANCELLED || this.state === STATE_CANCELLED,
-						scheduleChildTask: this.scheduleChildTask,
-						taskInputStream: this.options.input,
-						taskId: this.taskId,
-					});
+					this.currentEffect.run(result.value, this.effectRunData);
 				} else {
 					this.next(null, result.value);
 				}
@@ -210,4 +207,28 @@ export class Task<T = any> implements ITask {
 			this.options.logger(level, message, error);
 		}
 	}
+
+	private createEffectRunData(task: Task): IEffectRunData<any> {
+		return {
+			get taskId() {
+				return task.taskId;
+			},
+			get next() {
+				return task.next;
+			},
+			get isTaskCancelled() {
+				return task.state === STATE_BEING_CANCELLED || task.state === STATE_CANCELLED;
+			},
+			get scheduleChildTask() {
+				return task.scheduleChildTask;
+			},
+			get taskInputStream() {
+				return task.options.input;
+			},
+			get getEffect() {
+				return task.options.getEffect;
+			},
+		};
+	}
+
 }

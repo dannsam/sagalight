@@ -1,5 +1,5 @@
 import { createEffectFactory } from '../core/util';
-import { IEffect, IEffectRunData } from '../core/types';
+import { IEffect, IEffectRunData, IWrappedEffectData } from '../core/types';
 
 export interface IDelayEffectData {
 	delay: number;
@@ -9,12 +9,12 @@ const isStandardEffect = true;
 
 const dataFn = (delay: number) => ({ delay });
 
-const create = (): IEffect<IDelayEffectData, null> => {
+const create = (): IEffect<IWrappedEffectData<IDelayEffectData>, null> => {
 	let timeout: number;
 
 	return {
-		run(result: IteratorResult<IDelayEffectData>, runData: IEffectRunData<null>) {
-			const { delay } = result.value;
+		run(result: IWrappedEffectData<IDelayEffectData>, runData: IEffectRunData<null>) {
+			const { delay } = result.data;
 
 			timeout = setTimeout(
 				() => {

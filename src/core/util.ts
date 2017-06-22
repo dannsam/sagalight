@@ -1,5 +1,5 @@
 import { registerStandardEffect } from './standardEffects';
-import { IEffect, IEffectFactory, ILogger, IResolverFactory, LoggerLevel } from './types';
+import { IEffect, IEffectFactory, IResolverFactory, LoggerLevel, IWrappedEffectData } from './types';
 
 export function isFunction(test: any): test is Function {
 	return typeof test === 'function';
@@ -10,28 +10,29 @@ const effectIdentifierKey = '@SagaLight/effect';
 export function createEffectFactory<TDataFunction extends (...args: any[]) => TData, TData, TOutput>(
 	effectName: string,
 	dataFn: TDataFunction,
-	create: () => IEffect<TData, TOutput>,
+	create: () => IEffect<IWrappedEffectData<TData>, TOutput>,
 	isStandard: boolean = false,
 ): IEffectFactory<TDataFunction, TData, TOutput> {
 
 	const effect = ((...args: any[]) => {
-		const data: any = dataFn(...args);
-		data[effectIdentifierKey] = effectName;
-		return data;
-	}) as IEffectFactory<TDataFunction, TData, TOutput>;
+		return {
+			[effectIdentifierKey]: effectName,
+			data: dataFn(...args),
+		} as any;
+	}) as TDataFunction;
 
 	return createFactory(
 		effect,
 		effectName,
 		/* test */
-		(result: any): boolean => result.value[effectIdentifierKey] === effectName,
+		(result: any): boolean => result[effectIdentifierKey] === effectName,
 		create,
 		isStandard);
 }
 
 export function createResolverFactory<TData, TOutput>(
 	effectName: string,
-	test: (result: IteratorResult<TData>) => boolean,
+	test: (result: TData) => boolean,
 	create: () => IEffect<TData, TOutput>,
 	isStandard: boolean = false,
 ): IResolverFactory<TData, TOutput> {
@@ -41,7 +42,7 @@ export function createResolverFactory<TData, TOutput>(
 function createFactory<TDataFunction, TData, TOutput>(
 	target: TDataFunction & Partial<IResolverFactory<TData, TOutput>>,
 	effectName: string,
-	test: (result: IteratorResult<TData>) => boolean,
+	test: (result: TData) => boolean,
 	create: () => IEffect<TData, TOutput>,
 	isStandard: boolean) {
 

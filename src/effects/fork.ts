@@ -1,4 +1,4 @@
-import { ITask, IIteratorFactory, IEffect, IEffectRunData } from '../core/types';
+import { ITask, IIteratorFactory, IEffect, IEffectRunData, IWrappedEffectData } from '../core/types';
 import { createEffectFactory } from '../core/util';
 
 export interface IForkEffectData {
@@ -10,12 +10,12 @@ const isStandardEffect = true;
 
 const dataFn = (factory: IIteratorFactory, ...args: any[]): IForkEffectData => ({ factory, args });
 
-const create = (): IEffect<IForkEffectData, ITask> => {
+const create = (): IEffect<IWrappedEffectData<IForkEffectData>, ITask> => {
 	return {
-		run(result: IteratorResult<IForkEffectData>, runData: IEffectRunData<ITask>) {
-			const factory = result.value.factory;
+		run(result: IWrappedEffectData<IForkEffectData>, runData: IEffectRunData<ITask>) {
+			const factory = result.data.factory;
 
-			const iterator = factory(...result.value.args);
+			const iterator = factory(...result.data.args);
 
 			const childTask = runData.scheduleChildTask({
 				iterator,

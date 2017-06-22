@@ -12,26 +12,31 @@ export interface ITask {
 
 export type IResolverFactory<TData = any, TOutput = any> = {
 	effectName: string;
-	canResolve: (result: IteratorResult<TData>) => boolean;
+	canResolve: (result: TData) => boolean;
 	create(): IEffect<TData, TOutput>;
 };
 
-export type IEffectFactory<TDataFunction = any, TData = any, TOutput= any> = IResolverFactory<TData, TOutput> & TDataFunction;
+export type IEffectFactory<TDataFunction = any, TData = any, TOutput= any> =  IResolverFactory<TData, TOutput> & TDataFunction;
 
 export type IEffectFactoryCollection = IResolverFactory[];
 
 export interface IEffect<TData, TOutput> {
 	name?: string;
-	run(result: IteratorResult<TData>, runData: IEffectRunData<TOutput>): void;
+	run(result: TData, runData: IEffectRunData<TOutput>): void;
 	cancel?: () => void;
 }
 
+export interface IWrappedEffectData<T> {
+	data: T;
+}
+
 export interface IEffectRunData<TOutput = any> {
-	next: ICallback<TOutput>;
-	taskId: string;
-	isTaskCancelled: boolean;
+	readonly next: ICallback<TOutput>;
+	readonly taskId: string;
+	readonly isTaskCancelled: boolean;
 	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
-	taskInputStream: IStream | undefined;
+	getEffect: (result: any) => IEffect<any, any> | null;
+	readonly taskInputStream: IStream | undefined;
 }
 
 export interface ICallback<T = any> {
@@ -64,7 +69,7 @@ export interface ITaskOptions {
 	input?: IStream;
 	logger: ILogger | null;
 	callback: ICallback;
-	getEffect: (result: IteratorResult<any>) => IEffect<any, any> | null;
+	getEffect: (result: any) => IEffect<any, any> | null;
 }
 
 export type LoggerLevel = 'info' | 'warn' | 'error';
