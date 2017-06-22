@@ -1,5 +1,5 @@
 import { Task } from '../core/task';
-import { ICallback, IEffect } from '../core/types';
+import { ICallback, IEffect, SagaError } from '../core/types';
 
 function makeAsync() {
 	return 'makeAsync';
@@ -24,6 +24,7 @@ fdescribe('Task -', () => {
 
 	function createTask(it: Iterator<any>, cb: ICallback, getEffect?: (result: IteratorResult<any>) => IEffect<any, any> | null) {
 		return new Task('test', it, {
+			logger: null,
 			getEffect: getEffect || ((result): IEffect<any, any> | null => {
 				debugger;
 				if (result.value === 'makeAsync') {
@@ -337,7 +338,9 @@ fdescribe('Task -', () => {
 
 		const task = createTask(
 			iteratorSpy,
-			(error) => {
+			(error: SagaError) => {
+				expect(error).not.toBeNull();
+
 				const stack = error.sagaStack;
 				expect(stack).toContain('at childTask');
 				expect(stack).toContain('at test');

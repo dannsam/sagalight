@@ -56,13 +56,21 @@ export interface IStream {
 export interface IRunOptions {
 	effects?: IEffectFactoryCollection;
 	input?: IStream;
+	debug?: boolean;
 	callback?: ICallback;
 }
 
 export interface ITaskOptions {
 	input?: IStream;
+	logger: ILogger | null;
 	callback: ICallback;
 	getEffect: (result: IteratorResult<any>) => IEffect<any, any> | null;
+}
+
+export type LoggerLevel = 'info' | 'warn' | 'error';
+
+export interface ILogger {
+	(level: LoggerLevel, message: string, error?: string | Error): void;
 }
 
 export interface ITaskStartInfo<T> {

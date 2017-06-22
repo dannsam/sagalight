@@ -1,5 +1,5 @@
 import { isFunction } from './util';
-import { ITaskStartInfo, TaskState, ITask, ITaskOptions, IEffect, SagaError } from './types';
+import { IEffect, ILogger, ITask, ITaskOptions, ITaskStartInfo, SagaError, TaskState } from './types';
 
 const TASK_CANCEL = {
 	toString() {
@@ -90,7 +90,7 @@ export class Task<T = any> implements ITask {
 			if (!result.done) {
 				this.currentEffect = this.options.getEffect(result);
 
-				console.log(`${this.taskId} running '${this.currentEffect ? (this.currentEffect.name || 'unnamedEffect') : 'standard'}'`);
+				this.log('info', `${this.taskId} running '${this.currentEffect ? (this.currentEffect.name || 'unnamedEffect') : 'standard'}'`);
 
 				if (this.currentEffect) {
 					this.currentEffect.run(result, {
@@ -121,6 +121,7 @@ export class Task<T = any> implements ITask {
 			startInfo.iterator, {
 				getEffect: this.options.getEffect,
 				input: this.options.input,
+				logger: this.options.logger,
 				callback: (error) => {
 					this.childTasks.splice(this.childTasks.indexOf(childTask), 1);
 
@@ -180,7 +181,7 @@ export class Task<T = any> implements ITask {
 	private transitionStateToFrom(newState: TaskState, ...expectedStates: TaskState[]): void | never {
 		this.validateState(...expectedStates);
 
-		console.log(`${this.taskId} ${this.state} -> ${newState}`);
+		this.log('info', `${this.taskId} ${this.state} -> ${newState}`);
 
 		this.state = newState;
 	}
@@ -202,5 +203,11 @@ export class Task<T = any> implements ITask {
 
 	private cancelChildTasks() {
 		this.childTasks.forEach(x => x.cancel());
+	}
+
+	private log: ILogger = (level, message, error) => {
+		if (this.options.logger) {
+			this.options.logger(level, message, error);
+		}
 	}
 }

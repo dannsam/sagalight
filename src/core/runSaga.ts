@@ -1,6 +1,6 @@
 import { Task } from './task';
 import { IIteratorFactory, IRunOptions, ITaskOptions } from './types';
-import { isFunction } from './util';
+import { isFunction, createLogger } from './util';
 import { getStandardEffects } from './standardEffects';
 import { Stream } from './stream';
 import { getEffect } from './getEffect';
@@ -21,11 +21,18 @@ function runSaga<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factory
 		factory = factoryOrFirstArg;
 	}
 
+	const logger = options.debug ? createLogger('info', 'warn', 'error') : createLogger('error');
+
 	const effects = options.effects instanceof Array ? options.effects : getStandardEffects();
 	const taskOptions: ITaskOptions = {
+		logger,
 		getEffect: d => getEffect(d, effects),
 		input: options.input || new Stream(),
 		callback: (error: Error) => {
+			if (error) {
+				logger('error', 'uncaught', error);
+			}
+
 			if (isFunction(options.callback)) {
 				options.callback(error);
 			} else if (error) {

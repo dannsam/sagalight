@@ -1,5 +1,5 @@
 import { registerStandardEffect } from './standardEffects';
-import { IEffectFactory, IEffect, IResolverFactory } from './types';
+import { IEffect, IEffectFactory, ILogger, IResolverFactory, LoggerLevel } from './types';
 
 export function isFunction(test: any): test is Function {
 	return typeof test === 'function';
@@ -66,11 +66,17 @@ function ensureCreateHasEffectName<TData, TOutput>(
 	};
 }
 
-export function log(level: 'info' | 'warn' | 'error', message: string, error: string | Error = '') {
-	if (typeof window === 'undefined') {
-		const stack = error instanceof Error ? error.stack : error;
-		console.log(`SagaLight ${level}: ${message}\n${stack}`);
-	} else {
-		console[level](message, error);
-	}
+export function createLogger(...levels: LoggerLevel[]) {
+	return (level: LoggerLevel, message: string, error: string | Error = '') => {
+		if (levels.indexOf(level) === -1) {
+			return;
+		}
+
+		if (typeof window === 'undefined') {
+			const stack = error instanceof Error ? error.stack : error;
+			console.log(`SagaLight ${level}: ${message}\n${stack}`);
+		} else {
+			console[level](message, error);
+		}
+	};
 }
