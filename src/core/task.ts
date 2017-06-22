@@ -3,7 +3,7 @@ import { ITaskStartInfo, TaskState, ITask, ITaskOptions, IEffect, SagaError } fr
 
 const TASK_CANCEL = {
 	toString() {
-		return '@@sagalight/TASK_CANCEL';
+		return '@@SagaLight/TASK_CANCEL';
 	},
 };
 

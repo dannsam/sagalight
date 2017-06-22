@@ -1,10 +1,10 @@
 {
-  "name": "saga-core",
+  "name": "sagalight",
   "version": "1.0.0",
-  "main": "lib/saga-core.js",
-  "umd:main": "lib/saga-core.umd.js",
-  "module": "lib/saga-core.module.js",
-  "typings": "lib/saga-core.d.ts",
+  "main": "lib/sagalight.js",
+  "umd:main": "lib/sagalight.umd.js",
+  "module": "lib/sagalight.module.js",
+  "typings": "lib/sagalight.d.ts",
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.js",

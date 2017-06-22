@@ -5,7 +5,7 @@ export function isFunction(test: any): test is Function {
 	return typeof test === 'function';
 }
 
-const effectIdentifierKey = '@saga-core/effect';
+const effectIdentifierKey = '@SagaLight/effect';
 
 export function createEffectFactory<TDataFunction extends (...args: any[]) => TData, TData, TOutput>(
 	effectName: string,
@@ -69,7 +69,7 @@ function ensureCreateHasEffectName<TData, TOutput>(
 export function log(level: 'info' | 'warn' | 'error', message: string, error: string | Error = '') {
 	if (typeof window === 'undefined') {
 		const stack = error instanceof Error ? error.stack : error;
-		console.log(`saga-core ${level}: ${message}\n${stack}`);
+		console.log(`SagaLight ${level}: ${message}\n${stack}`);
 	} else {
 		console[level](message, error);
 	}

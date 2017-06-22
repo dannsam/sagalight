@@ -19,7 +19,7 @@
 		"moduleResolution": "node"
 	},
 	"files": [
-		"./src/saga-core.ts"
+		"./src/sagalight.ts"
 	],
 	"include": [
 		"./src/**/*"

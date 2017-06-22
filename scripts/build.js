@@ -37,7 +37,7 @@ function runTypeScriptBuild(outDir, target, declarations) {
 	options.importHelpers = true;
 	options.noEmitHelpers = true;
 
-	const rootFile = path.resolve("src", "saga-core.ts");
+	const rootFile = path.resolve("src", "sagalight.ts");
 	const host = ts.createCompilerHost(options, true);
 	const prog = ts.createProgram([rootFile], options, host);
 	const result = prog.emit();
@@ -67,25 +67,25 @@ function generateBundledModule(inputFile, outputFile, format) {
 	}).then(bundle => bundle.write({
 		dest: outputFile,
 		format,
-		banner: "/** saga-core - (c) Daniil Samoylov 2017 - MIT Licensed */",
+		banner: "/** SagaLight - (c) Daniil Samoylov 2017 - MIT Licensed */",
 		exports: "named"
 	}));
 }
 
 function generateUmd() {
-	console.log("Generating saga-core.umd.js");
+	console.log("Generating sagalight.umd.js");
 	const browserify = require('browserify');
 
-	exec(`${binFolder}/browserify -s saga-core -e lib/saga-core.js -o lib/saga-core.umd.js`);
+	exec(`${binFolder}/browserify -s sagalight -e lib/sagalight.js -o lib/sagalight.umd.js`);
 }
 
 function generateMinified() {
-	console.log("Generating saga-core.min.js and saga-core.umd.min.js");
+	console.log("Generating sagalight.min.js and sagalight.umd.min.js");
 	exec(
-		`${binFolder}/uglifyjs -m sort,toplevel -c warnings=false --screw-ie8 --preamble "/** saga-core - (c) Daniil Samoylov 2017 - MIT Licensed */" --source-map -o lib/saga-core.min.js lib/saga-core.js`
+		`${binFolder}/uglifyjs -m sort,toplevel -c warnings=false --screw-ie8 --preamble "/** SagaLight - (c) Daniil Samoylov 2017 - MIT Licensed */" --source-map -o lib/sagalight.min.js lib/sagalight.js`
 	);
 	exec(
-		`${binFolder}/uglifyjs -m sort,toplevel -c warnings=false --screw-ie8 --preamble "/** saga-core - (c) Daniil Samoylov 2017 - MIT Licensed */" --source-map -o lib/saga-core.umd.min.js lib/saga-core.umd.js`
+		`${binFolder}/uglifyjs -m sort,toplevel -c warnings=false --screw-ie8 --preamble "/** SagaLight - (c) Daniil Samoylov 2017 - MIT Licensed */" --source-map -o lib/sagalight.umd.min.js lib/sagalight.umd.js`
 	);
 }
 
@@ -95,7 +95,7 @@ function buildDeclarations(inputDir, outputDir) {
 
 	return dtsBuilder.generateBundles([
 		{
-			name: 'saga-core',
+			name: 'sagalight',
 			sourceDir: inputDir,
 			destDir: outputDir,
 			wrap: false
@@ -108,14 +108,14 @@ function build() {
 	return Promise.all([
 
 		generateBundledModule(
-			path.resolve(".build", "saga-core.js"),
-			path.resolve("lib", "saga-core.js"),
+			path.resolve(".build", "sagalight.js"),
+			path.resolve("lib", "sagalight.js"),
 			"cjs"
 		),
 
 		generateBundledModule(
-			path.resolve(".build", "saga-core.js"),
-			path.resolve("lib", "saga-core.module.js"),
+			path.resolve(".build", "sagalight.js"),
+			path.resolve("lib", "sagalight.module.js"),
 			"es"
 		),
 
