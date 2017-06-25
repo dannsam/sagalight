@@ -93,6 +93,8 @@ xit('integration', (done) => {
 						700);
 				},
 				200);
+		});
+});
 
 
 xit('take', (done) => {
@@ -116,7 +118,7 @@ xit('take', (done) => {
 
 
 xit('take - fork', (done) => {
-	const task = runSaga({
+	runSaga({
 		callback: () => {
 			done();
 		},

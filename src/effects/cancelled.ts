@@ -1,16 +1,16 @@
-import { IEffect, IEffectRunData } from '../core/types';
+import { ICallback, IEffectSignature, IEffectContext, IEffectFactory } from '../core/types';
 import { createEffectFactory } from '../core/util';
 
 const isStandardEffect = true;
 
-const dataFn = () => ({});
+export interface ICancelledEffectSignature extends IEffectSignature { }
 
-const create = (): IEffect<{}, boolean> => {
+export const cancelledEffectFactory: IEffectFactory<ICancelledEffectSignature, boolean> = createEffectFactory('cancelled', () => {
 	return {
-		run(_: any, runData: IEffectRunData<boolean>) {
-			runData.next(null, runData.isTaskCancelled);
+		run(_: ICancelledEffectSignature, next: ICallback<boolean>, effectContext: IEffectContext) {
+			next(null, effectContext.isTaskCancelled());
 		},
 	};
-};
+}, isStandardEffect);
 
-export const cancelled = createEffectFactory('cancelled', dataFn, create, isStandardEffect);
+export const cancelled: () => ICancelledEffectSignature = cancelledEffectFactory.signature;

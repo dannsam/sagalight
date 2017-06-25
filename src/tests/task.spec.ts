@@ -9,8 +9,8 @@ function makeAsync() {
 function createAsyncEffect(): IEffect<any, any> {
 	return {
 		name: 'async',
-		run(_: any, runData: any) {
-			Promise.resolve().then(() => runData.next(null, null));
+		run(_: any, next: any) {
+			Promise.resolve().then(() => next(null, null));
 		},
 	};
 }
@@ -184,8 +184,8 @@ describe('Task -', () => {
 			}, () => {
 				return {
 					name: 'testEffect',
-					run(_, runData) {
-						runData.next(expectedError);
+					run(_, next) {
+						next(expectedError);
 					},
 				};
 			});
@@ -206,8 +206,8 @@ describe('Task -', () => {
 			}, () => {
 				return {
 					name: 'testEffect',
-					run(_, runData) {
-						runData.next(expectedError);
+					run(_, next) {
+						next(expectedError);
 					},
 				};
 			});

@@ -1,30 +1,36 @@
-import { ITask, IIteratorFactory, IEffect, IEffectRunData, IWrappedEffectData } from '../core/types';
+import { ITask, IEffectContext,IEffectSignature, CallFunction, NamedFunction, ICallback, IEffectFactory } from '../core/types';
 import { createEffectFactory } from '../core/util';
-
-export interface IForkEffectData {
-	factory: IIteratorFactory;
-	args: any[];
-}
 
 const isStandardEffect = true;
 
-const dataFn = (factory: IIteratorFactory, ...args: any[]): IForkEffectData => ({ factory, args });
+export type ForkEffectArguments =
+	[NamedFunction] |
+	[NamedFunction, any] |
+	[NamedFunction, any, any] |
+	[NamedFunction, any, any, any] |
+	[NamedFunction, any, any, any, any] |
+	[NamedFunction, any, any, any, any, any];
 
-const create = (): IEffect<IWrappedEffectData<IForkEffectData>, ITask> => {
+export interface IForkEffectSignature extends IEffectSignature { 
+	args: ForkEffectArguments;
+}
+
+export const forkEffectFactory: IEffectFactory<IForkEffectSignature, ITask> = createEffectFactory('fork', () => {
 	return {
-		run(result: IWrappedEffectData<IForkEffectData>, runData: IEffectRunData<ITask>) {
-			const factory = result.data.factory;
+		run(result: IForkEffectSignature, next: ICallback<ITask>, effectContext: IEffectContext) {
+			const [fn, ...args] = result.args;
 
-			const iterator = factory(...result.data.args);
+			const iterator = fn(...args);
 
-			const childTask = runData.scheduleChildTask({
+			const childTask = effectContext.scheduleChildTask({
 				iterator,
-				name: factory.name,
+				name: fn.name,
 			});
 
-			runData.next(null, childTask);
+			next(null, childTask);
 		},
 	};
-};
+}, isStandardEffect);
 
-export const fork = createEffectFactory('fork', dataFn, create, isStandardEffect);
+export const fork: CallFunction<IForkEffectSignature> = forkEffectFactory.signature as any;
+

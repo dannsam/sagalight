@@ -1,31 +1,31 @@
-import { ITask, IEffect, IEffectRunData, IWrappedEffectData } from '../core/types';
-import { createEffectFactory, isFunction } from '../core/util';
+import { IEffect, IEffectContext, IEffectFactory, IEffectSignature, ICallback } from '../core/types';
+import { createEffectFactory, runEffect, cancelEffect } from '../core/util';
 
-export interface IRaceEffectData {
-	[key: string]: any;
+export interface IRaceEffectSignature extends IEffectSignature {
+	args: [{ [key: string]: any }];
 }
 
 const isStandardEffect = true;
 
-const dataFn = (effects: IRaceEffectData): IRaceEffectData => effects;
-
-const create = (): IEffect<IWrappedEffectData<IRaceEffectData>, ITask> => {
+export const raceEffectFactory: IEffectFactory<IRaceEffectSignature, { [key: string]: any }> = createEffectFactory('race', () => {
 	let done = false;
 	let keys: string[];
 	let effects: { [key: string]: IEffect<any, any> };
 
 	return {
-		run(result: IWrappedEffectData<IRaceEffectData>, runData: IEffectRunData<any>) {
+		run(result: IRaceEffectSignature, next: ICallback<{ [key: string]: any }>, effectContext: IEffectContext) {
+			// run(result: IWrappedEffectData < IRaceEffectData >, runData: IEffectContext<any>) {
 			if (done) {
 				// already cancelled
 				return;
 			}
-			const { data } = result;
+
+			const [data] = result.args;
 
 			keys = Object.keys(data);
 
 			effects = keys.reduce((acc: any, item) => {
-				const effect = runData.getEffect(data[item]);
+				const effect = effectContext.getEffect(data[item]);
 				acc[item] = effect;
 				return acc;
 			}, {});
@@ -34,33 +34,25 @@ const create = (): IEffect<IWrappedEffectData<IRaceEffectData>, ITask> => {
 			keys.forEach((k) => {
 				const effect = effects[k];
 
-				const wrappedRunData = {
-					...runData, next: (err: any, r: any) => {
-						if (done) {
-							return;
+				const wrappedNext = (err: any, r: any) => {
+					if (done) {
+						return;
+					}
+
+					done = true;
+
+					// try to cancel all others
+					keys.forEach((n) => {
+						if (k !== n) {
+							cancelEffect(effects[n]);
 						}
+					});
 
-						done = true;
-
-						// try to cancel all others
-						keys.forEach((n) => {
-							const toCancel = effects[n];
-							if (k !== n && toCancel && isFunction(toCancel.cancel)) {
-								toCancel.cancel();
-							}
-						});
-
-						// wrap result but don't wrap error
-						runData.next(err, { [k]: r });
-					},
+					// wrap result but don't wrap error
+					next(err, { [k]: r });
 				};
 
-				if (effect === null) {
-					// resolve as is
-					wrappedRunData.next(null, data[k]);
-				} else {
-					effect.run(data[k], wrappedRunData);
-				}
+				runEffect(effect, data[k], wrappedNext, effectContext);
 			});
 		},
 		cancel() {
@@ -69,16 +61,11 @@ const create = (): IEffect<IWrappedEffectData<IRaceEffectData>, ITask> => {
 				done = true;
 
 				if (keys) {
-					keys.forEach((k) => {
-						const toCancel = effects[k];
-						if (toCancel && isFunction(toCancel.cancel)) {
-							toCancel.cancel();
-						}
-					});
+					keys.forEach(k => cancelEffect(effects[k]));
 				}
 			}
 		},
 	};
-};
+}, isStandardEffect);
 
-export const race = createEffectFactory('race', dataFn, create, isStandardEffect);
+export const race: (effects: { [key: string]: any }) => IRaceEffectSignature = raceEffectFactory.signature as any;

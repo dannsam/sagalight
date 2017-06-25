@@ -8,7 +8,7 @@
   "license": "MIT",
   "scripts": {
     "build": "node scripts/build.js",
-    "tests-watch": "node_modules/.bin/karma start"
+    "tests": "node_modules/.bin/karma start"
   },
   "devDependencies": {
     "@types/jasmine": "^2.5.52",

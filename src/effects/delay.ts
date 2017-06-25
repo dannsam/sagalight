@@ -1,24 +1,22 @@
 import { createEffectFactory } from '../core/util';
-import { IEffect, IEffectRunData, IWrappedEffectData } from '../core/types';
+import { IEffectSignature, ICallback, IEffectFactory } from '../core/types';
 
-export interface IDelayEffectData {
-	delay: number;
+export interface IDelayEffectSignature extends IEffectSignature {
+	args: [number];
 }
 
 const isStandardEffect = true;
 
-const dataFn = (delay: number) => ({ delay });
-
-const create = (): IEffect<IWrappedEffectData<IDelayEffectData>, null> => {
+export const delayEffectFactory: IEffectFactory<IDelayEffectSignature, null> = createEffectFactory('delay', () => {
 	let timeout: number;
 
 	return {
-		run(result: IWrappedEffectData<IDelayEffectData>, runData: IEffectRunData<null>) {
-			const { delay } = result.data;
+		run(result: IDelayEffectSignature, next: ICallback<null>) {
+			const [delay] = result.args;
 
 			timeout = setTimeout(
 				() => {
-					runData.next(null, null);
+					next(null, null);
 				},
 				delay);
 		},
@@ -26,6 +24,6 @@ const create = (): IEffect<IWrappedEffectData<IDelayEffectData>, null> => {
 			clearTimeout(timeout);
 		},
 	};
-};
+}, isStandardEffect);
 
-export const delay = createEffectFactory('delay', dataFn, create, isStandardEffect);
+export const delay: (delay: number) => IDelayEffectSignature = delayEffectFactory.signature as any;

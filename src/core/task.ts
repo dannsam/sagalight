@@ -1,5 +1,5 @@
-import { isFunction } from './util';
-import { IEffect, ILogger, ITask, ITaskOptions, ITaskStartInfo, SagaError, TaskState, IEffectRunData } from './types';
+import { isFunction, log, cancelEffect, runEffect } from './util';
+import { IEffect, ITask, ITaskOptions, ITaskStartInfo, SagaError, TaskState, IEffectContext } from './types';
 
 const TASK_CANCEL = {
 	toString() {
@@ -27,7 +27,7 @@ export class Task<T = any> implements ITask {
 	private currentEffect: IEffect<any, any> | null = null;
 	private taskId: string;
 
-	private effectRunData: IEffectRunData<any>;
+	private effectContext: IEffectContext;
 
 	constructor(
 		name: string | undefined,
@@ -35,14 +35,14 @@ export class Task<T = any> implements ITask {
 		private options: ITaskOptions) {
 
 		this.taskId = `${name}[${taskId++}]`;
-		this.effectRunData = this.createEffectRunData(this);
+		this.effectContext = this.createEffectContext(this);
 	}
 
 	public start() {
 		this.transitionStateToFrom(STATE_RUNNING, STATE_NEW);
 
 		// kicks up the generator
-		// properly cancel the task even though it hasn't yet started
+		// let's properly cancel the task even though it hasn't yet started
 		this.next(null, this.isCancelledBeforeStart ? TASK_CANCEL : null);
 	}
 
@@ -93,15 +93,7 @@ export class Task<T = any> implements ITask {
 
 			if (!result.done) {
 				this.currentEffect = this.options.getEffect(result.value);
-
-				if (this.currentEffect) {
-					this.log('info', `${this.taskId} running effect '${this.currentEffect.name || 'unnamedEffect'}'`);
-					this.currentEffect.run(result.value, this.effectRunData);
-				} else {
-					this.log('info', `${this.taskId} resolving without effect`);
-					this.next(null, result.value);
-				}
-
+				runEffect(this.currentEffect, result.value, this.next, this.effectContext);
 			} else {
 				this.isMainComplete = true;
 				this.returnValue = result.value;
@@ -180,23 +172,18 @@ export class Task<T = any> implements ITask {
 	private transitionStateToFrom(newState: TaskState, ...expectedStates: TaskState[]): void | never {
 		this.validateState(...expectedStates);
 
-		this.log('info', `${this.taskId} ${this.state} -> ${newState}`);
+		log(this.options.logger, 'info', `${this.taskId} ${this.state} -> ${newState}`);
 
 		this.state = newState;
 	}
 
 	private cancelCurrentEffect() {
-		const effect = this.currentEffect;
-		if (effect) {
+		try {
+			cancelEffect(this.currentEffect);
+		} catch (error) {
+			this.onError(error);
+		} finally {
 			this.currentEffect = null;
-
-			try {
-				if (effect.cancel) {
-					effect.cancel();
-				}
-			} catch (error) {
-				this.onError(error);
-			}
 		}
 	}
 
@@ -204,36 +191,16 @@ export class Task<T = any> implements ITask {
 		this.childTasks.forEach(x => x.cancel());
 	}
 
-	private log: ILogger = (level, message, error) => {
-		if (this.options.logger) {
-			this.options.logger(level, message, error);
-		}
-	}
-
-	private createEffectRunData(task: Task): IEffectRunData<any> {
+	private createEffectContext(task: Task): IEffectContext {
 		return {
-			get taskId() {
-				return task.taskId;
-			},
-			get next() {
-				return task.next;
-			},
-			get isTaskCancelled() {
+			taskId: task.taskId,
+			isTaskCancelled() {
 				return task.state === STATE_BEING_CANCELLED || task.state === STATE_CANCELLED;
 			},
-			get scheduleChildTask() {
-				return task.scheduleChildTask;
-			},
-			get taskInputStream() {
-				return task.options.input;
-			},
-			get getEffect() {
-				return task.options.getEffect;
-			},
-			get logger() {
-				return task.options.logger;
-			},
+			getEffect: task.options.getEffect,
+			scheduleChildTask: task.scheduleChildTask,
+			taskInputStream: task.options.input,
+			logger: task.options.logger,
 		};
 	}
-
 }

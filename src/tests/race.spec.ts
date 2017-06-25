@@ -1,4 +1,4 @@
-import { race } from '../effects/race';
+import { race, raceEffectFactory } from '../effects/race';
 import { runSaga, delay } from '../sagalight';
 
 describe('Race -', () => {
@@ -13,26 +13,25 @@ describe('Race -', () => {
 
 	function resolveEffectSpy(effectSpy: any, data: any) {
 		// getting next callback from effect1 arg
-		const runData = effectSpy.run.calls.argsFor(0)[1];
+		const next = effectSpy.run.calls.argsFor(0)[1];
 
 		// resolve the effect and ensure that the race callback isn't called
-		runData.next(null, data);
+		next(null, data);
 	}
 
 	it('resolves effect once', () => {
-		const raceEffect = race.create();
+		const raceEffect = raceEffectFactory.create();
 		const effect1 = jasmine.createSpyObj('effect1', ['run', 'cancel']);
 		const effect2 = jasmine.createSpyObj('effect2', ['run', 'cancel']);
 		const nextSpy = jasmine.createSpy('next');
 
 		raceEffect.run({
-			data: {
+			args: [{
 				effect1,
 				effect2,
-			},
-		}, {
+			}],
+		}, nextSpy, {
 			getEffect,
-			next: nextSpy,
 		} as any);
 
 		resolveEffectSpy(effect2, 'result2');
@@ -47,7 +46,7 @@ describe('Race -', () => {
 	});
 
 	it('never runs if cancelled before start', () => {
-		const raceEffect = race.create();
+		const raceEffect = raceEffectFactory.create();
 		const effect1 = jasmine.createSpyObj('effect1', ['run', 'cancel']);
 		const effect2 = jasmine.createSpyObj('effect2', ['run', 'cancel']);
 		const nextSpy = jasmine.createSpy('next');
@@ -55,13 +54,12 @@ describe('Race -', () => {
 		raceEffect.cancel();
 
 		raceEffect.run({
-			data: {
+			args: [{
 				effect1,
 				effect2,
-			},
-		}, {
+			}],
+		}, nextSpy, {
 			getEffect,
-			next: nextSpy,
 		} as any);
 
 		expect(effect1.run).not.toHaveBeenCalled();
@@ -70,19 +68,18 @@ describe('Race -', () => {
 	});
 
 	it('never resolves if cancelled', () => {
-		const raceEffect = race.create();
+		const raceEffect = raceEffectFactory.create();
 		const effect1 = jasmine.createSpyObj('effect1', ['run', 'cancel']);
 		const effect2 = jasmine.createSpyObj('effect2', ['run', 'cancel']);
 		const nextSpy = jasmine.createSpy('next');
 
 		raceEffect.run({
-			data: {
+			args: [{
 				effect1,
 				effect2,
-			},
-		}, {
+			}],
+		}, nextSpy, {
 			getEffect,
-			next: nextSpy,
 		} as any);
 
 		expect(effect1.run).toHaveBeenCalledTimes(1);
@@ -98,16 +95,15 @@ describe('Race -', () => {
 	});
 
 	it('resolves unknown effect as is', () => {
-		const raceEffect = race.create();
+		const raceEffect = raceEffectFactory.create();
 		const nextSpy = jasmine.createSpy('next');
 
 		raceEffect.run({
-			data: {
+			args: [{
 				test: null,
-			},
-		}, {
+			}],
+		}, nextSpy, {
 			getEffect,
-			next: nextSpy,
 		} as any);
 
 		expect(nextSpy).toHaveBeenCalled();
@@ -117,19 +113,18 @@ describe('Race -', () => {
 	});
 
 	it('cancels once even though cancel called twice', () => {
-		const raceEffect = race.create();
+		const raceEffect = raceEffectFactory.create();
 		const effect1 = jasmine.createSpyObj('effect1', ['run', 'cancel']);
 		const effect2 = jasmine.createSpyObj('effect2', ['run', 'cancel']);
 		const nextSpy = jasmine.createSpy('next');
 
 		raceEffect.run({
-			data: {
+			args: [{
 				effect1,
 				effect2,
-			},
-		}, {
+			}],
+		}, nextSpy, {
 			getEffect,
-			next: nextSpy,
 		} as any);
 
 		raceEffect.cancel();
@@ -141,23 +136,22 @@ describe('Race -', () => {
 	});
 
 	it('passes effect description to child effect run', () => {
-		const raceEffect = race.create();
+		const raceEffect = raceEffectFactory.create();
 		const effect1 = jasmine.createSpyObj('effect1', ['run', 'cancel']);
 		const effect2 = jasmine.createSpyObj('effect2', ['run', 'cancel']);
 		const nextSpy = jasmine.createSpy('next');
 
 		raceEffect.run({
-			data: {
+			args: [{
 				effect1,
 				effect2,
-			},
-		}, {
+			}],
+		}, nextSpy, {
 			getEffect,
-			next: nextSpy,
 		} as any);
 
-		expect(effect1.run).toHaveBeenCalledWith(effect1, jasmine.any(Object));
-		expect(effect2.run).toHaveBeenCalledWith(effect2, jasmine.any(Object));
+		expect(effect1.run).toHaveBeenCalledWith(effect1, jasmine.any(Function), jasmine.any(Object));
+		expect(effect2.run).toHaveBeenCalledWith(effect2, jasmine.any(Function),jasmine.any(Object));
 	});
 
 	it('integration', (done) => {

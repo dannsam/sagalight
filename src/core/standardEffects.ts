@@ -1,5 +1,5 @@
 
-import { IEffectFactoryCollection, IEffectFactory } from './types';
+import { IEffectFactoryCollection, IResolverFactory } from './types';
 
 const standardEffects: IEffectFactoryCollection = [];
 
@@ -7,6 +7,6 @@ export function getStandardEffects(): IEffectFactoryCollection {
 	return standardEffects;
 }
 
-export function registerStandardEffect(effect: IEffectFactory) {
+export function registerStandardEffect(effect: IResolverFactory) {
 	standardEffects.push(effect);
 }

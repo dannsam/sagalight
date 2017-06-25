@@ -10,34 +10,35 @@ export interface ITask {
 	cancel(): void;
 }
 
-export type IResolverFactory<TData = any, TOutput = any> = {
+export interface IResolverFactory<TData = any, TOutput = any> {
 	effectName: string;
 	canResolve: (result: TData) => boolean;
 	create(): IEffect<TData, TOutput>;
-};
+}
 
-export type IEffectFactory<TDataFunction = any, TData = any, TOutput= any> = IResolverFactory<TData, TOutput> & TDataFunction;
+export interface IEffectFactory<TData = any, TOutput = any> extends IResolverFactory<TData, TOutput> {
+	signature(...args: any[]): IEffectSignature;
+}
 
 export type IEffectFactoryCollection = IResolverFactory[];
 
 export interface IEffect<TData, TOutput> {
 	name?: string;
-	run(result: TData, runData: IEffectRunData<TOutput>): void;
+	run(result: TData, next: ICallback<TOutput>, effectContext: IEffectContext): void;
 	cancel?: () => void;
 }
 
-export interface IWrappedEffectData<T> {
-	data: T;
+export interface IEffectSignature {
+	args: any[];
 }
 
-export interface IEffectRunData<TOutput = any> {
-	readonly next: ICallback<TOutput>;
+export interface IEffectContext {
 	readonly taskId: string;
-	readonly isTaskCancelled: boolean;
-	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
-	getEffect: (result: any) => IEffect<any, any> | null;
 	readonly taskInputStream: IStream | undefined;
 	readonly logger: ILogger | null;
+	isTaskCancelled(): boolean;
+	scheduleChildTask(taskInfo: ITaskStartInfo<any>): ITask;
+	getEffect: (result: any) => IEffect<any, any> | null;
 }
 
 export interface ICallback<T = any> {
@@ -84,3 +85,25 @@ export interface ITaskStartInfo<T> {
 	iterator: Iterator<T>;
 }
 
+export type NamedFunction = Function & { name?: string };
+
+export type Callable<T extends NamedFunction> = T;
+
+export type Func0<T> = () => T;
+export type Func1<T, T1> = (arg1: T1) => T;
+export type Func2<T, T1, T2> = (arg1: T1, arg2: T2) => T;
+export type Func3<T, T1, T2, T3> = (arg1: T1, arg2: T2, arg3: T3) => T;
+export type Func4<T, T1, T2, T3, T4> = (arg1: T1, arg2: T2, arg3: T3, arg4: T4) => T;
+export type Func5<T, T1, T2, T3, T4, T5> = (arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5) => T;
+export type Func6<T, T1, T2, T3, T4, T5, T6> = (arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, ...rest: any[]) => T;
+
+
+export type CallFunction<T> = {
+	(fn: Callable<Func0<any>>): T;
+	<T1>(fn: Callable<Func1<any, T1>>, arg1: T1): T;
+	<T1, T2>(fn: Callable<Func2<any, T1, T2>>, arg1: T1, arg2: T2): T;
+	<T1, T2, T3>(fn: Callable<Func3<any, T1, T2, T3>>, arg1: T1, arg2: T2, arg3: T3): T;
+	<T1, T2, T3, T4>(fn: Callable<Func4<any, T1, T2, T3, T4>>, arg1: T1, arg2: T2, arg3: T3, arg4: T4): T;
+	<T1, T2, T3, T4, T5>(fn: Callable<Func5<any, T1, T2, T3, T4, T5>>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5): T;
+	<T1, T2, T3, T4, T5, T6>(fn: Callable<Func6<any, T1, T2, T3, T4, T5, T6>>, arg1: T1, arg2: T2, arg3: T3, arg4: T4, arg5: T5, arg6: T6, ...rest: any[]): T;
+};

@@ -1,65 +1,97 @@
 import { registerStandardEffect } from './standardEffects';
-import { IEffect, IEffectFactory, IResolverFactory, LoggerLevel, IWrappedEffectData } from './types';
+import { IEffect, IEffectFactory, IResolverFactory, LoggerLevel, IEffectSignature, ILogger, IEffectContext, ICallback } from './types';
 
 const effectIdentifierKey = '@SagaLight/effect';
 
-export function createEffectFactory<TDataFunction extends (...args: any[]) => TData, TData, TOutput>(
+export function createEffectFactory<TData, TOutput>(
 	effectName: string,
-	dataFn: TDataFunction,
-	create: () => IEffect<IWrappedEffectData<TData>, TOutput>,
+	create: () => IEffect<TData, TOutput>,
 	isStandard: boolean = false,
-): IEffectFactory<TDataFunction, TData, TOutput> {
+): IEffectFactory<TData, TOutput> {
 
-	const effect = ((...args: any[]) => {
-		return {
-			[effectIdentifierKey]: effectName,
-			data: dataFn(...args),
-		} as any;
-	}) as TDataFunction;
-
-	return createFactory(
-		effect,
+	const factory = createResolverFactory(
 		effectName,
 		/* test */
 		(result: any): boolean => result[effectIdentifierKey] === effectName,
 		create,
-		isStandard);
+		isStandard) as IEffectFactory<TData, TOutput>;
+
+	factory.signature = (...args: any[]): IEffectSignature => ({
+		args,
+		[effectIdentifierKey]: effectName,
+	});
+
+	return factory;
 }
 
 export function createResolverFactory<TData, TOutput>(
 	effectName: string,
 	test: (result: TData) => boolean,
 	create: () => IEffect<TData, TOutput>,
-	isStandard: boolean = false,
-): IResolverFactory<TData, TOutput> {
-	return createFactory({}, effectName, test, create, isStandard);
-}
+	isStandard: boolean): IResolverFactory<TData, TOutput> {
 
-function createFactory<TDataFunction, TData, TOutput>(
-	target: TDataFunction & Partial<IResolverFactory<TData, TOutput>>,
-	effectName: string,
-	test: (result: TData) => boolean,
-	create: () => IEffect<TData, TOutput>,
-	isStandard: boolean) {
-
-	target.effectName = effectName;
-	target.create = ensureCreateHasEffectName(effectName, create);
-	target.canResolve = test;
+	const factory: IResolverFactory = {
+		effectName,
+		create: ensureCreateHasEffectName(effectName, create),
+		canResolve: test,
+	};
 
 	if (isStandard) {
-		registerStandardEffect(target);
+		registerStandardEffect(factory);
 	}
 
-	return target as TDataFunction & IResolverFactory<TData, TOutput>;
+	return factory;
 }
 
 function ensureCreateHasEffectName<TData, TOutput>(
-	name: string,
+	effectName: string,
 	create: () => IEffect<TData, TOutput>) {
 	return () => {
-		const effectInfo = create();
-		effectInfo.name = name;
-		return effectInfo;
+		const effectInstance = create();
+		const name = effectName || 'unnamedEffect';
+
+		effectInstance.name = name;
+
+		const { run, cancel } = effectInstance;
+		// wrapping effect run and cancel to add logging
+		// in addition let's never run a cancelled effect and never cancel effect that hasn't been run
+		let effectContext: IEffectContext;
+		let isCancelled = false;
+
+		effectInstance.run = function (v, next, e) {
+			if (isCancelled) {
+				return;
+			}
+
+			if (effectContext) {
+				log(effectContext.logger, 'warn', `${effectContext.taskId} attempt to run an already started effect '${name}'`);
+				return;
+			}
+
+
+			effectContext = e;
+			log(effectContext.logger, 'info', `${effectContext.taskId} running effect '${name}'`);
+			return run.call(effectInstance, v, next, effectContext);
+		};
+
+		if (isFunction(cancel)) {
+			effectInstance.cancel = function () {
+				if (isCancelled) {
+					return;
+				}
+
+				isCancelled = true;
+
+				if (!effectContext) {
+					return;
+				}
+
+				log(effectContext.logger, 'info', `${effectContext.taskId} cancelling effect '${name}'`);
+				return cancel.call(effectInstance);
+			};
+		}
+
+		return effectInstance;
 	};
 }
 
@@ -84,4 +116,26 @@ export function isFunction(test: any): test is Function {
 
 export function isIterator(obj: Iterator<any>): obj is Iterator<any> {
 	return isFunction(obj.next) && isFunction(obj.throw);
+}
+
+
+export function log(logger: ILogger | null, level: LoggerLevel, message: string, error?: string | Error) {
+	if (logger) {
+		logger(level, message, error);
+	}
+}
+
+export function runEffect(effect: IEffect<any, any> | null, value: any, next: ICallback, effectContext: IEffectContext) {
+	if (effect) {
+		effect.run(value, next, effectContext);
+	} else {
+		log(effectContext.logger, 'info', `${effectContext.taskId} resolving value without effect`);
+		next(null, value);
+	}
+}
+
+export function cancelEffect(effect: IEffect<any, any> | null) {
+	if (effect && isFunction(effect.cancel)) {
+		effect.cancel();
+	}
 }

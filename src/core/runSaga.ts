@@ -26,7 +26,7 @@ function runSaga<T>(optionsOrFactory: IRunOptions | IIteratorFactory<T>, factory
 	const effects = options.effects instanceof Array ? options.effects : getStandardEffects();
 	const taskOptions: ITaskOptions = {
 		logger,
-		getEffect: d => getEffect(d, effects),
+		getEffect: value => getEffect(value, effects),
 		input: options.input || new Stream(),
 		callback: (error: Error) => {
 			if (error) {

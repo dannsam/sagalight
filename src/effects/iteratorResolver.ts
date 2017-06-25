@@ -1,4 +1,4 @@
-import { IEffect, IEffectRunData } from '../core/types';
+import { IEffect, IEffectContext, ICallback, IResolverFactory } from '../core/types';
 import { createResolverFactory, isIterator } from '../core/util';
 import { Task } from '../sagalight';
 
@@ -8,15 +8,15 @@ const create = <T>(): IEffect<Iterator<T>, T> => {
 	let task: Task;
 
 	return {
-		run(result: Iterator<T>, runData: IEffectRunData<T>) {
+		run(result: Iterator<T>, next: ICallback<T>, effectContext: IEffectContext) {
 			task = new Task(
-				`(iterator${runData.taskId})`,
+				`${effectContext.taskId}-iterator`,
 				result, {
-					callback: runData.next,
-					getEffect: runData.getEffect,
-					input: runData.taskInputStream,
-					logger: runData.logger,
-				}, 
+					callback: next,
+					getEffect: effectContext.getEffect,
+					input: effectContext.taskInputStream,
+					logger: effectContext.logger,
+				},
 			);
 
 			task.start();
@@ -29,4 +29,4 @@ const create = <T>(): IEffect<Iterator<T>, T> => {
 	};
 };
 
-export const iteratorResolver = createResolverFactory('iteratorResolver', isIterator, create, isStandardEffect);
+export const iteratorResolverFactory: IResolverFactory<Iterator<any>, any> = createResolverFactory('iteratorResolver', isIterator, create, isStandardEffect);

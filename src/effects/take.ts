@@ -1,41 +1,35 @@
-import { IStream, IEffectRunData, IEffect, IWrappedEffectData } from '../core/types';
+import { IStream, IEffectContext, IEffectSignature, ICallback, IEffectFactory } from '../core/types';
 import { createEffectFactory } from '../core/util';
 
-export interface ITakeEffectData {
-	condition: (data: any) => boolean;
-	stream?: IStream;
+export interface ITakeEffectSignature extends IEffectSignature {
+	args: [(data: any) => boolean, IStream | null];
 }
 
 const isStandardEffect = true;
 
-const dataFn = (condition: (data: any) => boolean, stream?: IStream): ITakeEffectData => ({ condition, stream });
-
-const createEffectRun = <T>(): IEffect<IWrappedEffectData<ITakeEffectData>, T> => {
+export const takeEffectFactory: IEffectFactory<ITakeEffectSignature, any> = createEffectFactory('take', () => {
 	let unsubscribe: Function;
 
 	return {
-		run(result: IWrappedEffectData<ITakeEffectData>, runData: IEffectRunData<T>) {
-			const stream = result.data.stream || runData.taskInputStream;
+		run(result: ITakeEffectSignature, next: ICallback<any>, effectContext: IEffectContext) {
+			const [condition, stream = effectContext.taskInputStream] = result.args;
 
 			if (!stream) {
 				throw new Error('Please provide input stream via run options or take(..., stream) in order to use TakeEffect');
 			}
-
-			const condition = result.data.condition;
-
 			unsubscribe = stream.subscribe((data) => {
 				let matches: boolean;
 				try {
 					matches = condition(data);
 				} catch (e) {
 					unsubscribe();
-					runData.next(e);
+					next(e);
 					return;
 				}
 
 				if (matches) {
 					unsubscribe();
-					runData.next(null, data);
+					next(null, data);
 				}
 			});
 		},
@@ -45,6 +39,6 @@ const createEffectRun = <T>(): IEffect<IWrappedEffectData<ITakeEffectData>, T> =
 			}
 		},
 	};
-};
+}, isStandardEffect);
 
-export const take = createEffectFactory('take', dataFn, createEffectRun, isStandardEffect);
+export const take: (condition: (data: any) => boolean, stream?: IStream) => ITakeEffectSignature = takeEffectFactory.signature as any;
